@@ -12,6 +12,7 @@ import PaymentPage from './pages/customer/PaymentPage';
 import OrderConfirmationPage from './pages/customer/OrderConfirmationPage';
 import OrderStatusPage from './pages/customer/OrderStatusPage';
 import LoginPage from './pages/auth/LoginPage';
+import StaffLoginPage from './pages/auth/StaffLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import PromotorDashboard from './pages/promotor/PromotorDashboard';
 import GateScannerPage from './pages/gate/GateScannerPage';
@@ -39,7 +40,11 @@ export default function App() {
               <Route path="/status" element={<OrderStatusPage />} />
               <Route path="/confirmation" element={<OrderConfirmationPage />} />
 
-              {/* Internal — dilindungi kode akses panitia */}
+              {/* Staff Portal & Login */}
+              <Route path="/staff" element={<StaffLoginPage />} />
+              <Route path="/staff/login" element={<StaffLoginPage />} />
+
+              {/* Internal Panels — dilindungi kode akses / otorisasi role */}
               <Route
                 path="/admin"
                 element={

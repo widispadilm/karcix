@@ -83,10 +83,10 @@ export default function StaffGate({ role, children }) {
 
         <div className="mt-6 flex flex-col items-center gap-2">
           <Link
-            to="/login"
+            to="/staff"
             className="text-xs font-semibold text-[#1173d4] hover:underline"
           >
-            Atau gunakan Menu Login Utama
+            Buka Portal Khusus Staff & Panitia ➔
           </Link>
 
           <Link

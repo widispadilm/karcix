@@ -1,4 +1,4 @@
-import { Ticket } from 'lucide-react';
+import { Ticket, Shield } from 'lucide-react';
 import { Link } from 'react-router';
 
 export default function Footer() {
@@ -10,10 +10,12 @@ export default function Footer() {
           <span className="font-bold text-[#1D1D1F]">Karcix.id</span>
         </div>
         <p>© 2026 Karcix.id. All rights reserved.</p>
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4 text-xs sm:text-sm">
           <Link to="/help" className="hover:text-[#1D1D1F] transition-colors">Bantuan</Link>
-          <a href="#" className="hover:text-[#1D1D1F] transition-colors">Syarat & Ketentuan</a>
-          <a href="#" className="hover:text-[#1D1D1F] transition-colors">Privasi</a>
+          <Link to="/staff" className="hover:text-[#1173d4] flex items-center gap-1 transition-colors">
+            <Shield className="w-3.5 h-3.5 text-[#1173d4]" />
+            <span>Portal Panitia</span>
+          </Link>
         </div>
       </div>
     </footer>
