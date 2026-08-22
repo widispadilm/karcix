@@ -21,10 +21,29 @@ import {
 export default function AppProvider({ children }) {
   const [state, baseDispatch] = useReducer(appReducer, undefined, loadState);
 
-  // Sync to sessionStorage as fallback
+  // Sync to localStorage
   useEffect(() => {
     saveState(state);
   }, [state]);
+
+  // Listen for storage events across different tabs in the same browser
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'karcix-state-v1' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed?.orders && parsed?.event) {
+            baseDispatch({
+              type: 'SET_STATE',
+              payload: parsed,
+            });
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [baseDispatch]);
 
   // Load from Supabase on mount
   useEffect(() => {

@@ -13,7 +13,7 @@ import {
 export const AppContext = createContext(null);
 export const AppDispatchContext = createContext(null);
 
-const STORAGE_KEY = 'karcix-state-v1';
+export const STORAGE_KEY = 'karcix-state-v1';
 
 export const initialState = {
   event: INITIAL_EVENT,
@@ -22,12 +22,12 @@ export const initialState = {
 };
 
 /**
- * State disimpan di sessionStorage supaya pesanan yang baru dibuat tidak hilang saat
- * halaman di-refresh — alur checkout → bayar → verifikasi admin butuh beberapa reload.
+ * State disimpan di localStorage supaya pesanan tersinkronisasi antar-tab
+ * dan tidak hilang saat halaman di-refresh.
  */
 export function loadState() {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return initialState;
     const parsed = JSON.parse(raw);
     if (!parsed?.event || !Array.isArray(parsed?.orders)) return initialState;
@@ -40,7 +40,7 @@ export function loadState() {
 
 export function saveState(state) {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // Kuota storage penuh (bukti transfer base64 bisa besar) — abaikan, state tetap di memori.
   }
@@ -48,7 +48,7 @@ export function saveState(state) {
 
 export function clearState() {
   try {
-    sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
   } catch {
     // noop
   }
