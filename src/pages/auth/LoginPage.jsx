@@ -3,24 +3,29 @@ import { useNavigate, useLocation, Link } from 'react-router';
 import {
   Ticket,
   Mail,
-  User,
+  Lock,
+  Eye,
+  EyeOff,
   ArrowLeft,
   CheckCircle2,
   AlertCircle,
   Sparkles,
   Shield,
+  UserPlus,
 } from 'lucide-react';
 import { useAuth, DEMO_ACCOUNTS } from '../../context/AuthContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, loginAsDemo } = useAuth();
+  const { loginCustomer, loginAsDemo } = useAuth();
 
   const [customerEmail, setCustomerEmail] = useState('');
-  const [customerName, setCustomerName] = useState('');
+  const [customerPassword, setCustomerPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const redirectAfterLogin = () => {
     const from = location.state?.from?.pathname;
@@ -31,25 +36,29 @@ export default function LoginPage() {
     navigate('/profile');
   };
 
-  const handleCustomerLogin = (e) => {
+  const handleCustomerLogin = async (e) => {
     e.preventDefault();
+    setError('');
+
     if (!customerEmail.trim() || !customerEmail.includes('@')) {
       setError('Masukkan alamat email yang valid.');
       return;
     }
 
-    const name = customerName.trim() || customerEmail.split('@')[0];
-    const user = {
-      id: `usr-cust-${Date.now().toString().slice(-4)}`,
-      name,
-      email: customerEmail.trim().toLowerCase(),
-      role: 'customer',
-      roleLabel: 'Pembeli',
-    };
+    try {
+      setLoading(true);
+      const user = loginCustomer({
+        email: customerEmail,
+        password: customerPassword,
+      });
 
-    login(user);
-    setSuccessMsg(`Selamat datang kembali, ${name}!`);
-    setTimeout(() => redirectAfterLogin(), 600);
+      setSuccessMsg(`Selamat datang kembali, ${user.name}!`);
+      setTimeout(() => redirectAfterLogin(), 600);
+    } catch (err) {
+      setError(err.message || 'Gagal masuk. Periksa email dan kata sandi Anda.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleQuickDemo = () => {
@@ -63,10 +72,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Brand & Header */}
         <div className="text-center mb-8">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 mb-4 group"
-          >
+          <Link to="/" className="inline-flex items-center gap-2 mb-4 group">
             <div className="w-11 h-11 rounded-2xl bg-[#1173d4] flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
               <Ticket className="w-6 h-6" />
             </div>
@@ -118,34 +124,63 @@ export default function LoginPage() {
                   autoFocus
                 />
               </div>
-              <p className="text-[11px] text-[#86868B] mt-1.5">
-                Gunakan email yang sama saat Anda memesan tiket.
-              </p>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider mb-1.5">
-                Nama Lengkap (Opsional)
-              </label>
-              <div className="relative flex items-center">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#86868B] pointer-events-none" />
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Contoh: Andi Pratama"
-                  className="input-field pl-12 !pl-12"
-                />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider">
+                  Kata Sandi <span className="text-red-500">*</span>
+                </label>
               </div>
+              <div className="relative flex items-center">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#86868B] pointer-events-none" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={customerPassword}
+                  onChange={(e) => {
+                    setCustomerPassword(e.target.value);
+                    setError('');
+                  }}
+                  placeholder="Masukkan kata sandi"
+                  className="input-field pl-12 pr-10 !pl-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#86868B] hover:text-[#1D1D1F] p-1"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-[#86868B] mt-1">
+                Kata sandi default akun demo: <code className="font-mono">password123</code>
+              </p>
             </div>
 
-            <button type="submit" className="btn-primary w-full mt-3 py-3 font-semibold text-sm">
-              Masuk / Lanjutkan
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full mt-3 py-3 font-semibold text-sm disabled:opacity-50"
+            >
+              {loading ? 'Memverifikasi...' : 'Masuk ke Akun'}
             </button>
           </form>
 
+          {/* Register Link */}
+          <div className="mt-5 p-3 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between text-xs">
+            <span className="text-[#86868B]">Belum punya akun?</span>
+            <Link
+              to="/register"
+              className="font-bold text-[#1173d4] hover:underline flex items-center gap-1"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Daftar Sekarang</span>
+            </Link>
+          </div>
+
           {/* 1-Click Quick Demo */}
-          <div className="mt-7 pt-6 border-t border-black/5">
+          <div className="mt-6 pt-5 border-t border-black/5">
             <button
               type="button"
               onClick={handleQuickDemo}
@@ -156,7 +191,7 @@ export default function LoginPage() {
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-[#1173d4]">Coba Akun Demo</p>
+                  <p className="text-xs font-bold text-[#1173d4]">Coba Masuk Akun Demo</p>
                   <p className="text-[11px] text-[#86868B]">{DEMO_ACCOUNTS.customer.name}</p>
                 </div>
               </div>

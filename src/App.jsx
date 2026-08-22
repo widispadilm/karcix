@@ -12,6 +12,7 @@ import PaymentPage from './pages/customer/PaymentPage';
 import OrderConfirmationPage from './pages/customer/OrderConfirmationPage';
 import OrderStatusPage from './pages/customer/OrderStatusPage';
 import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
 import StaffLoginPage from './pages/auth/StaffLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import PromotorDashboard from './pages/promotor/PromotorDashboard';
@@ -23,7 +24,7 @@ export default function App() {
       <HashRouter>
         <div className="min-h-screen bg-pattern">
           {/* Navbar dirender sekali di sini; komponennya menyembunyikan diri
-              pada halaman fokus (checkout, pembayaran, dashboard internal). */}
+              pada halaman fokus (checkout, pembayaran, dashboard internal, auth). */}
           <Navbar />
 
           <main>
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="/search" element={<SearchPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
               <Route path="/help" element={<HelpCenterPage />} />
               <Route path="/checkout/:tierId" element={<CheckoutPage />} />
               <Route path="/payment" element={<PaymentPage />} />

@@ -224,3 +224,61 @@ export async function updateTierInSupabase(tierId, updates) {
   const { error } = await supabase.from('event_tiers').update(updates).eq('id', tierId);
   if (error) console.error('Error updating tier in Supabase:', error);
 }
+
+export async function fetchCustomersFromSupabase() {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching customers from Supabase:', err);
+    return null;
+  }
+}
+
+export async function createCustomerInSupabase(customer) {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .insert([customer])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error inserting customer in Supabase:', err);
+    throw err;
+  }
+}
+
+export async function updateCustomerInSupabase(customerId, updates) {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', customerId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error updating customer in Supabase:', err);
+    throw err;
+  }
+}
+
+export async function deleteCustomerInSupabase(customerId) {
+  if (!isSupabaseConfigured || !supabase) return;
+  try {
+    const { error } = await supabase.from('customers').delete().eq('id', customerId);
+    if (error) throw error;
+  } catch (err) {
+    console.error('Error deleting customer from Supabase:', err);
+  }
+}
