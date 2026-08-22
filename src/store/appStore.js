@@ -181,6 +181,12 @@ export function appReducer(state, action) {
       };
     }
 
+    case 'SET_STATE':
+      return {
+        ...state,
+        ...action.payload,
+      };
+
     case 'RESET':
       return initialState;
 
