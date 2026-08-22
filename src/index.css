@@ -309,7 +309,7 @@ body {
   background: white;
   border: 1px solid #D1D1D6;
   border-radius: 0.75rem;
-  padding: 1rem;
+  padding: 0.875rem 1rem;
   color: var(--color-text-main);
   font-size: 0.9375rem;
   width: 100%;
@@ -325,6 +325,15 @@ body {
 .input-field:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.input-field.pl-10,
+.input-field-icon {
+  padding-left: 2.75rem !important;
+}
+
+.input-field.pl-12 {
+  padding-left: 3.25rem !important;
 }
 
 /* === Skeleton Loading === */

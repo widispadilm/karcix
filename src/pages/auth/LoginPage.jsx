@@ -171,10 +171,8 @@ export default function LoginPage() {
                 <label className="block text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider mb-1.5">
                   Alamat Email <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#86868B]">
-                    <Mail className="w-4 h-4" />
-                  </div>
+                <div className="relative flex items-center">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#86868B] pointer-events-none" />
                   <input
                     type="email"
                     required
@@ -184,7 +182,7 @@ export default function LoginPage() {
                       setError('');
                     }}
                     placeholder="nama@email.com"
-                    className="input-field pl-10"
+                    className="input-field pl-12 !pl-12"
                   />
                 </div>
               </div>
@@ -193,16 +191,14 @@ export default function LoginPage() {
                 <label className="block text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider mb-1.5">
                   Nama Lengkap (Opsional)
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#86868B]">
-                    <User className="w-4 h-4" />
-                  </div>
+                <div className="relative flex items-center">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#86868B] pointer-events-none" />
                   <input
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Contoh: Andi Pratama"
-                    className="input-field pl-10"
+                    className="input-field pl-12 !pl-12"
                   />
                 </div>
               </div>
@@ -266,10 +262,8 @@ export default function LoginPage() {
                 <label className="block text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider mb-1.5">
                   Kode Akses {staffRole.toUpperCase()}
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#86868B]">
-                    <Lock className="w-4 h-4" />
-                  </div>
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#86868B] pointer-events-none" />
                   <input
                     type="password"
                     required
@@ -279,7 +273,7 @@ export default function LoginPage() {
                       setError('');
                     }}
                     placeholder={`Kode akses ${staffRole}`}
-                    className="input-field pl-10"
+                    className="input-field pl-12 !pl-12"
                   />
                 </div>
                 <p className="text-[11px] text-[#86868B] mt-1">
