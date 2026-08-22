@@ -1,48 +1,117 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
-import { Ticket, QrCode, Calendar, MapPin, Receipt, Info, X } from 'lucide-react';
+import { useNavigate, Link } from 'react-router';
+import {
+  Ticket,
+  QrCode,
+  Calendar,
+  MapPin,
+  Receipt,
+  Info,
+  X,
+  LogOut,
+  LogIn,
+  Shield,
+  BarChart3,
+} from 'lucide-react';
 import Footer from '../../components/Footer';
 import ETicket from '../../components/ETicket';
 import StatusBadge from '../../components/StatusBadge';
 import { useAppState } from '../../store/appStore';
+import { useAuth } from '../../context/AuthContext';
 import { formatDate, formatDateTime, formatRupiah, ORDER_STATUS } from '../../data/mockData';
 import { avatar, poster } from '../../assets/posters';
-
-const DEMO_USER = 'Pengguna Demo';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { event, orders } = useAppState();
+  const { currentUser, isAuthenticated, logout } = useAuth();
   const [ticketModal, setTicketModal] = useState(null);
 
-  // Tiket aktif = pesanan yang sudah lunas. Sebelumnya semua pesanan ditandai "Aktif",
-  // termasuk yang dibatalkan.
-  const paidOrders = orders.filter((o) => o.status === ORDER_STATUS.PAID);
+  // Jika user login dengan email tertentu, filter pesanan miliknya.
+  // Jika belum ada pesanan atas email tersebut atau user demo, tampilkan pesanan yang tersedia di sesi.
+  const userEmail = currentUser?.email?.toLowerCase();
+  const userOrders = userEmail
+    ? orders.filter((o) => o.email?.toLowerCase() === userEmail)
+    : [];
+
+  const displayOrders = userOrders.length > 0 ? userOrders : orders;
+  const paidOrders = displayOrders.filter((o) => o.status === ORDER_STATUS.PAID);
   const ticketBg = poster(event.id, { label: event.title, width: 600, height: 400 });
+
+  const userName = currentUser?.name || 'Pengguna Tamu';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F5F7]">
       <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-24 md:pb-8 flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
         <aside className="hidden md:block w-64 flex-shrink-0 animate-fade-in">
-          <div className="sticky top-24 bg-white border border-black/5 rounded-xl p-6 shadow-sm">
+          <div className="sticky top-24 bg-white border border-black/5 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-black/5">
               <img
-                src={avatar(DEMO_USER)}
-                alt=""
+                src={avatar(userName)}
+                alt={userName}
                 className="w-14 h-14 rounded-full object-cover border-2 border-[#1173d4]"
               />
-              <div>
-                <h2 className="font-semibold text-[#1D1D1F]">{DEMO_USER}</h2>
-                <span className="text-xs text-[#86868B]">Mode demo</span>
+              <div className="overflow-hidden">
+                <h2 className="font-semibold text-[#1D1D1F] truncate">{userName}</h2>
+                <span className="text-xs text-[#86868B] block truncate">
+                  {currentUser?.email || 'Belum Masuk'}
+                </span>
+                {currentUser?.roleLabel && (
+                  <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#1173d4]">
+                    {currentUser.roleLabel}
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="bg-blue-50 rounded-lg p-3 flex gap-2 text-xs text-[#555558]">
+            {/* Quick action links */}
+            <div className="space-y-2 mb-6">
+              {currentUser?.role === 'admin' && (
+                <Link
+                  to="/admin"
+                  className="w-full flex items-center gap-2 p-2.5 text-xs font-semibold rounded-xl bg-blue-50 text-[#1173d4] hover:bg-blue-100/70 transition-colors"
+                >
+                  <Shield className="w-4 h-4" /> Buka Admin Dashboard
+                </Link>
+              )}
+
+              {currentUser?.role === 'promotor' && (
+                <Link
+                  to="/promotor"
+                  className="w-full flex items-center gap-2 p-2.5 text-xs font-semibold rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100/70 transition-colors"
+                >
+                  <BarChart3 className="w-4 h-4" /> Buka Promotor Panel
+                </Link>
+              )}
+
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 p-2.5 text-xs font-semibold rounded-xl border border-red-200 text-[#FF3B30] hover:bg-red-50 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" /> Keluar dari Akun
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="btn-primary w-full flex items-center justify-center gap-2 text-xs py-2.5"
+                >
+                  <LogIn className="w-4 h-4" /> Masuk ke Akun
+                </Link>
+              )}
+            </div>
+
+            <div className="bg-blue-50/70 rounded-xl p-3 flex gap-2 text-xs text-[#555558] border border-blue-100/50">
               <Info className="w-4 h-4 text-[#1173d4] shrink-0 mt-0.5" />
               <p>
-                Belum ada sistem login, jadi halaman ini menampilkan seluruh pesanan yang ada di
-                sesi ini.
+                {isAuthenticated
+                  ? 'Tiket aktif dan riwayat pesanan Anda tersimpan otomatis.'
+                  : 'Masuk dengan email yang sama saat membeli tiket untuk melihat e-ticket Anda.'}
               </p>
             </div>
           </div>
@@ -50,16 +119,43 @@ export default function ProfilePage() {
 
         <div className="flex-grow space-y-12">
           {/* Header mobile */}
-          <div className="md:hidden flex items-center gap-4 bg-white p-4 rounded-xl border border-black/5 shadow-sm animate-slide-up">
-            <img
-              src={avatar(DEMO_USER)}
-              alt=""
-              className="w-16 h-16 rounded-full object-cover border-2 border-[#1173d4]"
-            />
-            <div>
-              <h2 className="text-xl font-bold text-[#1D1D1F]">{DEMO_USER}</h2>
-              <span className="text-xs text-[#86868B]">Mode demo</span>
+          <div className="md:hidden flex items-center justify-between bg-white p-4 rounded-2xl border border-black/5 shadow-sm animate-slide-up">
+            <div className="flex items-center gap-3.5 overflow-hidden">
+              <img
+                src={avatar(userName)}
+                alt={userName}
+                className="w-14 h-14 rounded-full object-cover border-2 border-[#1173d4]"
+              />
+              <div className="overflow-hidden">
+                <h2 className="text-lg font-bold text-[#1D1D1F] truncate">{userName}</h2>
+                <span className="text-xs text-[#86868B] block truncate">
+                  {currentUser?.email || 'Tamu'}
+                </span>
+                {currentUser?.roleLabel && (
+                  <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#1173d4] mt-0.5">
+                    {currentUser.roleLabel}
+                  </span>
+                )}
+              </div>
             </div>
+
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  navigate('/');
+                }}
+                className="p-2 text-[#FF3B30] hover:bg-red-50 rounded-xl"
+                aria-label="Keluar"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            ) : (
+              <Link to="/login" className="btn-primary text-xs py-2 px-3">
+                Masuk
+              </Link>
+            )}
           </div>
 
           {/* Tiket aktif */}
@@ -128,7 +224,7 @@ export default function ProfilePage() {
                   </div>
                 ))
               ) : (
-                <div className="xl:col-span-2 bg-white border border-black/5 rounded-xl p-12 flex flex-col items-center justify-center text-center">
+                <div className="xl:col-span-2 bg-white border border-black/5 rounded-2xl p-12 flex flex-col items-center justify-center text-center">
                   <Ticket className="w-12 h-12 text-[#D1D1D6] mb-4" />
                   <p className="text-[#1D1D1F] font-medium">Belum ada tiket aktif.</p>
                   <p className="text-[#86868B] text-sm mt-1 mb-4">
@@ -146,10 +242,10 @@ export default function ProfilePage() {
           <section className="animate-slide-up" style={{ animationDelay: '100ms' }}>
             <h2 className="text-xl font-bold text-[#1D1D1F] mb-6">Riwayat Pesanan</h2>
 
-            <div className="bg-white border border-black/5 rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-white border border-black/5 rounded-2xl overflow-hidden shadow-sm">
               <div className="divide-y divide-black/5">
-                {orders.length > 0 ? (
-                  [...orders]
+                {displayOrders.length > 0 ? (
+                  [...displayOrders]
                     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
                     .map((order) => (
                       <div
@@ -157,7 +253,7 @@ export default function ProfilePage() {
                         className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-[#F5F5F7] transition-colors"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-lg bg-[#F5F5F7] flex items-center justify-center text-[#555558] border border-black/5">
+                          <div className="w-12 h-12 rounded-xl bg-[#F5F5F7] flex items-center justify-center text-[#555558] border border-black/5">
                             <Receipt className="w-5 h-5" />
                           </div>
                           <div>

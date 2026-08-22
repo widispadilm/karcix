@@ -1,14 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Lock, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
-/**
- * Gerbang akses sederhana untuk halaman internal (admin, promotor, gate).
- *
- * CATATAN: ini hanya pengaman prototipe — kode akses ada di bundle frontend, jadi
- * siapa pun yang membuka devtools bisa membacanya. Sebelum dipakai sungguhan,
- * ganti dengan autentikasi di sisi server.
- */
 const ACCESS_CODES = {
   admin: 'admin2026',
   promotor: 'promotor2026',
@@ -22,19 +16,25 @@ const ROLE_LABEL = {
 };
 
 export default function StaffGate({ role, children }) {
+  const { currentUser, loginAsDemo } = useAuth();
   const storageKey = `karcix-staff-${role}`;
+
+  const isRoleAuthorized =
+    currentUser && (currentUser.role === role || currentUser.role === 'admin');
+
   const [unlocked, setUnlocked] = useState(
-    () => sessionStorage.getItem(storageKey) === 'true'
+    () => isRoleAuthorized || localStorage.getItem(storageKey) === 'true'
   );
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
 
-  if (unlocked) return children;
+  if (unlocked || isRoleAuthorized) return children;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (code.trim() === ACCESS_CODES[role]) {
-      sessionStorage.setItem(storageKey, 'true');
+      localStorage.setItem(storageKey, 'true');
+      loginAsDemo(role);
       setUnlocked(true);
       return;
     }
@@ -81,13 +81,22 @@ export default function StaffGate({ role, children }) {
           </button>
         </form>
 
-        <Link
-          to="/"
-          className="mt-6 inline-flex items-center gap-2 text-sm text-[#86868B] hover:text-[#1D1D1F] transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Kembali ke beranda
-        </Link>
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <Link
+            to="/login"
+            className="text-xs font-semibold text-[#1173d4] hover:underline"
+          >
+            Atau gunakan Menu Login Utama
+          </Link>
+
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm text-[#86868B] hover:text-[#1D1D1F] transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Kembali ke beranda
+          </Link>
+        </div>
       </div>
 
       <p className="mt-6 text-xs text-[#A1A1A6] text-center max-w-sm">

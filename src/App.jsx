@@ -1,4 +1,5 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router';
+import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import StaffGate from './components/StaffGate';
 import EventPage from './pages/customer/EventPage';
@@ -10,61 +11,65 @@ import CheckoutPage from './pages/customer/CheckoutPage';
 import PaymentPage from './pages/customer/PaymentPage';
 import OrderConfirmationPage from './pages/customer/OrderConfirmationPage';
 import OrderStatusPage from './pages/customer/OrderStatusPage';
+import LoginPage from './pages/auth/LoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import PromotorDashboard from './pages/promotor/PromotorDashboard';
 import GateScannerPage from './pages/gate/GateScannerPage';
 
 export default function App() {
   return (
-    <HashRouter>
-      <div className="min-h-screen bg-pattern">
-        {/* Navbar dirender sekali di sini; komponennya menyembunyikan diri
-            pada halaman fokus (checkout, pembayaran, dashboard internal). */}
-        <Navbar />
+    <AuthProvider>
+      <HashRouter>
+        <div className="min-h-screen bg-pattern">
+          {/* Navbar dirender sekali di sini; komponennya menyembunyikan diri
+              pada halaman fokus (checkout, pembayaran, dashboard internal). */}
+          <Navbar />
 
-        <main>
-          <Routes>
-            {/* Customer */}
-            <Route path="/" element={<EventPage />} />
-            <Route path="/event/:id" element={<EventDetailPage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/help" element={<HelpCenterPage />} />
-            <Route path="/checkout/:tierId" element={<CheckoutPage />} />
-            <Route path="/payment" element={<PaymentPage />} />
-            <Route path="/status" element={<OrderStatusPage />} />
-            <Route path="/confirmation" element={<OrderConfirmationPage />} />
+          <main>
+            <Routes>
+              {/* Customer */}
+              <Route path="/" element={<EventPage />} />
+              <Route path="/event/:id" element={<EventDetailPage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/help" element={<HelpCenterPage />} />
+              <Route path="/checkout/:tierId" element={<CheckoutPage />} />
+              <Route path="/payment" element={<PaymentPage />} />
+              <Route path="/status" element={<OrderStatusPage />} />
+              <Route path="/confirmation" element={<OrderConfirmationPage />} />
 
-            {/* Internal — dilindungi kode akses panitia */}
-            <Route
-              path="/admin"
-              element={
-                <StaffGate role="admin">
-                  <AdminDashboard />
-                </StaffGate>
-              }
-            />
-            <Route
-              path="/promotor"
-              element={
-                <StaffGate role="promotor">
-                  <PromotorDashboard />
-                </StaffGate>
-              }
-            />
-            <Route
-              path="/gate"
-              element={
-                <StaffGate role="gate">
-                  <GateScannerPage />
-                </StaffGate>
-              }
-            />
+              {/* Internal — dilindungi kode akses panitia */}
+              <Route
+                path="/admin"
+                element={
+                  <StaffGate role="admin">
+                    <AdminDashboard />
+                  </StaffGate>
+                }
+              />
+              <Route
+                path="/promotor"
+                element={
+                  <StaffGate role="promotor">
+                    <PromotorDashboard />
+                  </StaffGate>
+                }
+              />
+              <Route
+                path="/gate"
+                element={
+                  <StaffGate role="gate">
+                    <GateScannerPage />
+                  </StaffGate>
+                }
+              />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </HashRouter>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
+      </HashRouter>
+    </AuthProvider>
   );
 }
