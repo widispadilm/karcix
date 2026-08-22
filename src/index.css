@@ -1,0 +1,475 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Cupertino Minimalist Color Palette */
+  --color-primary: #1173d4;
+  --color-primary-hover: #0f60b3;
+  --color-primary-light: #d5e3ff;
+
+  --color-bg: #F5F5F7;
+  --color-surface: rgba(255, 255, 255, 0.72);
+  --color-surface-solid: #FFFFFF;
+
+  --color-text-main: #1D1D1F;
+  --color-text-muted: #86868B;
+  --color-text-secondary: #555558;
+
+  --color-border-subtle: rgba(0, 0, 0, 0.04);
+  --color-border-light: rgba(0, 0, 0, 0.05);
+
+  --color-success: #34C759;
+  --color-danger: #FF3B30;
+  --color-warning: #FF9500;
+  --color-info: #1173d4;
+
+  --animate-fade-in: fade-in 0.4s cubic-bezier(0.2, 0, 0, 1);
+  --animate-slide-up: slide-up 0.5s cubic-bezier(0.2, 0, 0, 1);
+  --animate-slide-down: slide-down 0.3s cubic-bezier(0.2, 0, 0, 1);
+  --animate-scale-in: scale-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --animate-bounce-slight: bounce-slight 0.2s ease-in-out;
+  --animate-shake: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes bounce-slight {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+/* ===========================
+   Cupertino Minimalist Theme
+   =========================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-main);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+/* === Glassmorphism Nav === */
+.glass-nav {
+  background-color: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* === Event Card Hover Effects === */
+.event-card {
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.event-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.event-card:active {
+  transform: scale(0.98);
+}
+
+.card-image {
+  transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.event-card:hover .card-image {
+  transform: scale(1.05);
+}
+
+/* === Hero Gradient === */
+.hero-gradient {
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%);
+}
+
+/* === Glass Cards === */
+.glass-card {
+  background: var(--color-surface-solid);
+  border-radius: 1rem;
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.glass-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* === Ticket Card (Order Confirmation) === */
+.ticket-card {
+  position: relative;
+  background-color: #FFFFFF;
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+  transform-style: preserve-3d;
+  overflow: hidden;
+}
+
+.ticket-card::before,
+.ticket-card::after {
+  content: '';
+  position: absolute;
+  top: 60%;
+  width: 20px;
+  height: 20px;
+  background-color: var(--color-bg);
+  border-radius: 50%;
+  z-index: 10;
+}
+
+.ticket-card::before { left: -10px; }
+.ticket-card::after { right: -10px; }
+
+.ticket-card:hover {
+  transform: perspective(1000px) rotateX(2deg) rotateY(2deg) scale(1.02);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+}
+
+.ticket-card-divider {
+  position: absolute;
+  top: 60%;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+  border-top: 2px dashed rgba(0, 0, 0, 0.1);
+  transform: translateY(10px);
+}
+
+/* === Scrollbar === */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1D1D6;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A1A1A6;
+}
+
+/* No scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* === Buttons (Cupertino style) === */
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+  font-weight: 600;
+  padding: 0.875rem 2rem;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  font-size: 0.9375rem;
+  box-shadow: 0 2px 8px rgba(17, 115, 212, 0.2);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  opacity: 0.9;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-pill {
+  background: var(--color-primary);
+  color: white;
+  font-weight: 600;
+  padding: 1rem 2.5rem;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  font-size: 1rem;
+  box-shadow: 0 4px 16px rgba(17, 115, 212, 0.25);
+}
+
+.btn-pill:hover {
+  transform: scale(1.05);
+}
+
+.btn-pill:active {
+  transform: scale(0.95);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.btn-ghost:hover {
+  background: rgba(17, 115, 212, 0.06);
+}
+
+.btn-outline {
+  background: white;
+  color: var(--color-text-main);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid #E5E5EA;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.btn-outline:hover {
+  background: #f9f9f9;
+  border-color: #D1D1D6;
+}
+
+.btn-dark {
+  background: #000000;
+  color: white;
+  font-weight: 600;
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  font-size: 1.0625rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.btn-dark:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.btn-dark:active {
+  transform: scale(0.98);
+}
+
+/* === Form Inputs (Cupertino clean bordered) === */
+.input-field {
+  background: white;
+  border: 1px solid #D1D1D6;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: var(--color-text-main);
+  font-size: 0.9375rem;
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+  font-family: inherit;
+}
+
+.input-field::placeholder {
+  color: #A1A1A6;
+}
+
+.input-field:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+/* === Skeleton Loading === */
+.skeleton {
+  background: #E5E5EA;
+  background-image: linear-gradient(to right, #E5E5EA 0%, #F5F5F7 20%, #E5E5EA 40%, #E5E5EA 100%);
+  background-repeat: no-repeat;
+  background-size: 1000px 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+/* === Status Badges === */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-pending {
+  background: #FFF3CD;
+  color: #B06000;
+}
+
+.badge-paid {
+  background: rgba(52, 199, 89, 0.1);
+  color: #137333;
+}
+
+.badge-cancelled {
+  background: rgba(255, 59, 48, 0.1);
+  color: #C5221F;
+}
+
+.badge-checked-in {
+  background: rgba(17, 115, 212, 0.1);
+  color: var(--color-primary);
+}
+
+/* === E-Ticket styling === */
+.eticket-card {
+  background: #ffffff;
+  border: none;
+  border-radius: 1rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* === Table === */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead th {
+  background: #ffffff;
+  padding: 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.data-table tbody td {
+  padding: 1rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+  background: #FAFAFA;
+}
+
+/* === Tab navigation === */
+.tab-active {
+  background: transparent;
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
+  border-radius: 0;
+  font-weight: 600;
+}
+
+.tab-inactive {
+  background: transparent;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+}
+
+.tab-inactive:hover {
+  color: var(--color-text-main);
+}
+
+/* === Background pattern === */
+.bg-pattern {
+  background-color: var(--color-bg);
+}
+
+/* === Scanner Viewfinder === */
+.scanner-viewfinder {
+  position: relative;
+  aspect-ratio: 1;
+  max-width: 300px;
+  margin: 0 auto;
+  border: none;
+  box-shadow: 0 0 0 4px rgba(17, 115, 212, 0.1);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #f1f3f4;
+}
+
+.scanner-viewfinder::before,
+.scanner-viewfinder::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-color: var(--color-primary);
+  border-style: solid;
+}
+
+.scanner-viewfinder::before {
+  top: 0;
+  left: 0;
+  border-width: 4px 0 0 4px;
+}
+
+.scanner-viewfinder::after {
+  bottom: 0;
+  right: 0;
+  border-width: 0 4px 4px 0;
+}
+
+/* === Utility gradient text === */
+.gradient-text {
+  background: var(--color-text-main);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
