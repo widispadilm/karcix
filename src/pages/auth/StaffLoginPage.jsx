@@ -25,9 +25,9 @@ const ROLES = [
     name: 'Administrator',
     desc: 'Verifikasi bayar & kelola pesanan',
     icon: Shield,
-    color: 'text-[#1173d4]',
-    bg: 'bg-blue-50/70',
-    border: 'border-blue-200',
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
     path: '/admin',
   },
   {
@@ -35,9 +35,9 @@ const ROLES = [
     name: 'Promotor Event',
     desc: 'Laporan omset & pantau kuota',
     icon: BarChart3,
-    color: 'text-purple-600',
-    bg: 'bg-purple-50/70',
-    border: 'border-purple-200',
+    color: 'text-purple-400',
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/20',
     path: '/promotor',
   },
   {
@@ -45,9 +45,9 @@ const ROLES = [
     name: 'Petugas Gate',
     desc: 'Scan QR & check-in tiket',
     icon: QrCode,
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50/70',
-    border: 'border-emerald-200',
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20',
     path: '/gate',
   },
 ];
@@ -98,32 +98,30 @@ export default function StaffLoginPage() {
   const IconComponent = currentRoleObj.icon;
 
   return (
-    <div className="min-h-screen bg-[#141416] text-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" /> Kembali ke Halaman Utama
-        </Link>
+    <div className="min-h-screen bg-[#141416] text-white flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        {/* Brand & Header */}
+        <div className="text-center mb-8">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 mb-4 group"
+          >
+            <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
+              <Ticket className="w-6 h-6" />
+            </div>
+            <span className="text-2xl font-bold text-white tracking-tight">Karcix Staff</span>
+          </Link>
 
-        <div className="flex items-center justify-center gap-2.5 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-            <Ticket className="w-6 h-6" />
-          </div>
-          <span className="text-2xl font-bold text-white tracking-tight">Karcix Staff</span>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            Portal Khusus Panitia & Staff
+          </h1>
+          <p className="mt-1.5 text-sm text-gray-400">
+            Akses kontrol internal manajemen event, verifikasi bayar, dan gate scanner
+          </p>
         </div>
 
-        <h2 className="text-center text-2xl font-bold tracking-tight text-white">
-          Portal Khusus Panitia & Staff
-        </h2>
-        <p className="mt-1 text-center text-sm text-gray-400">
-          Akses kontrol internal manajemen event, verifikasi bayar, dan gate scanner
-        </p>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-[#1C1C1E] py-8 px-6 sm:px-10 shadow-2xl border border-white/10 rounded-2xl animate-scale-in">
+        {/* Card */}
+        <div className="bg-[#1C1C1E] py-8 px-6 sm:px-10 shadow-2xl border border-white/10 rounded-3xl animate-scale-in">
           {/* Role Switcher */}
           <div className="mb-6">
             <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2.5">
@@ -143,7 +141,7 @@ export default function StaffLoginPage() {
                     }}
                     className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
                       isSelected
-                        ? 'border-blue-500 bg-blue-500/10 text-blue-400 font-semibold shadow-inner'
+                        ? 'border-blue-500 bg-blue-500/15 text-blue-400 font-semibold shadow-inner'
                         : 'border-white/5 bg-[#2C2C2E]/60 text-gray-400 hover:bg-[#2C2C2E] hover:text-gray-200'
                     }`}
                   >
@@ -201,8 +199,8 @@ export default function StaffLoginPage() {
                   autoFocus
                 />
               </div>
-              <p className="text-[11px] text-gray-400 mt-1.5 flex items-center justify-between">
-                <span>Demo code: <code className="font-mono text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">{STAFF_ACCESS_CODES[staffRole]}</code></span>
+              <p className="text-[11px] text-gray-400 mt-1.5">
+                Demo code: <code className="font-mono text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">{STAFF_ACCESS_CODES[staffRole]}</code>
               </p>
             </div>
 
@@ -215,7 +213,7 @@ export default function StaffLoginPage() {
           </form>
 
           {/* Quick Demo Login */}
-          <div className="mt-8 pt-6 border-t border-white/10">
+          <div className="mt-7 pt-6 border-t border-white/10">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 mb-3">
               <Sparkles className="w-3.5 h-3.5 text-blue-400" /> Akses Cepat Demo (1-Klik)
             </span>
@@ -257,6 +255,16 @@ export default function StaffLoginPage() {
               Bukan panitia? <span className="text-blue-400 underline">Masuk sebagai Pembeli Tiket</span>
             </Link>
           </div>
+        </div>
+
+        {/* Back to Home Button at Bottom */}
+        <div className="text-center mt-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors font-medium"
+          >
+            <ArrowLeft className="w-4 h-4" /> Kembali ke Halaman Utama
+          </Link>
         </div>
       </div>
     </div>

@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { avatar } from '../assets/posters';
 
 // Halaman fokus & dashboard internal punya navigasinya sendiri.
-const HIDDEN_PREFIXES = ['/checkout', '/confirmation', '/payment', '/admin', '/promotor', '/gate'];
+const HIDDEN_PREFIXES = ['/checkout', '/confirmation', '/payment', '/admin', '/promotor', '/gate', '/login', '/staff'];
 
 export default function Navbar() {
   const location = useLocation();
