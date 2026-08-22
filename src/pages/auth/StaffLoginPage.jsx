@@ -98,33 +98,29 @@ export default function StaffLoginPage() {
   const IconComponent = currentRoleObj.icon;
 
   return (
-    <div className="min-h-screen bg-[#141416] text-white flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-[#141416] text-white flex flex-col justify-center items-center p-4 sm:p-6">
+      <div className="w-full max-w-[420px] my-auto">
         {/* Brand & Header */}
-        <div className="text-center mb-8">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 mb-4 group"
-          >
-            <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <Ticket className="w-6 h-6" />
+        <div className="text-center mb-4 sm:mb-5">
+          <Link to="/" className="inline-flex items-center gap-2 mb-2 group">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+              <Ticket className="w-5 h-5" />
             </div>
-            <span className="text-2xl font-bold text-white tracking-tight">Karcix Staff</span>
+            <span className="text-xl font-bold text-white tracking-tight">Karcix Staff</span>
           </Link>
-
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Portal Khusus Panitia & Staff
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+            Portal Khusus Panitia &amp; Staff
           </h1>
-          <p className="mt-1.5 text-sm text-gray-400">
-            Akses kontrol internal manajemen event, verifikasi bayar, dan gate scanner
+          <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
+            Akses kontrol internal manajemen event &amp; scanner
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#1C1C1E] py-8 px-6 sm:px-10 shadow-2xl border border-white/10 rounded-3xl animate-scale-in">
+        <div className="bg-[#1C1C1E] py-6 px-5 sm:py-7 sm:px-8 shadow-2xl border border-white/10 rounded-2xl sm:rounded-3xl animate-scale-in">
           {/* Role Switcher */}
-          <div className="mb-6">
-            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2.5">
+          <div className="mb-4">
+            <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-2">
               Pilih Role / Hak Akses
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -139,14 +135,14 @@ export default function StaffLoginPage() {
                       setStaffRole(role.id);
                       setError('');
                     }}
-                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                    className={`py-2 px-1.5 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
                       isSelected
                         ? 'border-blue-500 bg-blue-500/15 text-blue-400 font-semibold shadow-inner'
                         : 'border-white/5 bg-[#2C2C2E]/60 text-gray-400 hover:bg-[#2C2C2E] hover:text-gray-200'
                     }`}
                   >
-                    <Icon className="w-5 h-5" />
-                    <span className="text-xs">{role.name.split(' ')[0]}</span>
+                    <Icon className="w-4 h-4" />
+                    <span className="text-[11px] sm:text-xs">{role.name.split(' ')[0]}</span>
                   </button>
                 );
               })}
@@ -155,37 +151,37 @@ export default function StaffLoginPage() {
 
           {/* Feedback messages */}
           {error && (
-            <div className="mb-5 p-3.5 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-sm flex items-center gap-2 animate-fade-in">
+            <div className="mb-4 p-2.5 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-xs sm:text-sm flex items-center gap-2 animate-fade-in">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="mb-5 p-3.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-sm flex items-center gap-2 animate-fade-in">
+            <div className="mb-4 p-2.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs sm:text-sm flex items-center gap-2 animate-fade-in">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{successMsg}</span>
             </div>
           )}
 
           {/* Staff Login Form */}
-          <form onSubmit={handleStaffLogin} className="space-y-4">
-            <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3 mb-2">
-              <div className={`p-2 rounded-lg ${currentRoleObj.bg} ${currentRoleObj.color}`}>
-                <IconComponent className="w-5 h-5" />
+          <form onSubmit={handleStaffLogin} className="space-y-3 sm:space-y-3.5">
+            <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-center gap-2.5">
+              <div className={`p-1.5 rounded-lg ${currentRoleObj.bg} ${currentRoleObj.color}`}>
+                <IconComponent className="w-4 h-4" />
               </div>
               <div className="overflow-hidden">
-                <p className="text-xs font-semibold text-white">{currentRoleObj.name}</p>
-                <p className="text-[11px] text-gray-400 truncate">{currentRoleObj.desc}</p>
+                <p className="text-xs font-semibold text-white truncate">{currentRoleObj.name}</p>
+                <p className="text-[10px] text-gray-400 truncate">{currentRoleObj.desc}</p>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1">
                 Kode Akses Panitia ({staffRole.toUpperCase()})
               </label>
               <div className="relative flex items-center">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <input
                   type="password"
                   required
@@ -195,75 +191,75 @@ export default function StaffLoginPage() {
                     setError('');
                   }}
                   placeholder={`Masukkan kode ${staffRole}`}
-                  className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl p-3 pl-12 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm transition-all"
+                  className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl py-2.5 pl-11 pr-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-xs sm:text-sm transition-all"
                   autoFocus
                 />
               </div>
-              <p className="text-[11px] text-gray-400 mt-1.5">
-                Demo code: <code className="font-mono text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">{STAFF_ACCESS_CODES[staffRole]}</code>
+              <p className="text-[10px] text-gray-400 mt-1">
+                Demo code: <code className="font-mono text-blue-400 bg-blue-500/10 px-1 py-0.5 rounded">{STAFF_ACCESS_CODES[staffRole]}</code>
               </p>
             </div>
 
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-blue-600/30 text-sm mt-2 cursor-pointer"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl transition-all shadow-md shadow-blue-600/30 text-xs sm:text-sm cursor-pointer"
             >
               Masuk ke {currentRoleObj.name}
             </button>
           </form>
 
           {/* Quick Demo Login */}
-          <div className="mt-7 pt-6 border-t border-white/10">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-blue-400" /> Akses Cepat Demo (1-Klik)
+          <div className="mt-4 pt-3.5 border-t border-white/10">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1 mb-2">
+              <Sparkles className="w-3 h-3 text-blue-400" /> Akses Cepat Demo (1-Klik)
             </span>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => handleQuickDemo('admin')}
-                className="p-2.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-center transition-colors"
+                className="p-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-center transition-colors"
               >
                 <p className="text-xs font-semibold text-blue-400">Admin</p>
-                <p className="text-[10px] text-gray-400">Semua Fitur</p>
+                <p className="text-[9px] text-gray-400">Semua Fitur</p>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleQuickDemo('promotor')}
-                className="p-2.5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded-xl text-center transition-colors"
+                className="p-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded-xl text-center transition-colors"
               >
                 <p className="text-xs font-semibold text-purple-400">Promotor</p>
-                <p className="text-[10px] text-gray-400">Laporan</p>
+                <p className="text-[9px] text-gray-400">Laporan</p>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleQuickDemo('gate')}
-                className="p-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl text-center transition-colors"
+                className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl text-center transition-colors"
               >
                 <p className="text-xs font-semibold text-emerald-400">Gate</p>
-                <p className="text-[10px] text-gray-400">Scanner</p>
+                <p className="text-[9px] text-gray-400">Scanner</p>
               </button>
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-white/5 text-center">
+          <div className="mt-4 pt-3 border-t border-white/5 text-center">
             <Link
               to="/login"
               className="text-xs text-gray-400 hover:text-white transition-colors"
             >
-              Bukan panitia? <span className="text-blue-400 underline">Masuk sebagai Pembeli Tiket</span>
+              Bukan panitia? <span className="text-blue-400 underline">Masuk sebagai Pembeli</span>
             </Link>
           </div>
         </div>
 
         {/* Back to Home Button at Bottom */}
-        <div className="text-center mt-6">
+        <div className="text-center mt-3.5 sm:mt-4">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors font-medium"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-gray-400 hover:text-white transition-colors font-medium"
           >
-            <ArrowLeft className="w-4 h-4" /> Kembali ke Halaman Utama
+            <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Halaman Utama
           </Link>
         </div>
       </div>
