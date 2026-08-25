@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, LogIn, UserPlus, Eye, EyeOff, Check, AlertCircle, Sparkles } from 'lucide-react';
+import { X, LogIn, UserPlus, Eye, EyeOff, Check, AlertCircle, Sparkles, Ticket } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }) {
@@ -86,13 +86,27 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuc
         className="bg-white max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-2xl border border-black/5 relative animate-scale-in my-auto max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Header Bar: Title & Standalone Close Button */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1173d4] flex items-center justify-center font-bold text-sm">
+              <Ticket className="w-4.5 h-4.5 text-[#1173d4]" />
+            </div>
+            <h3 className="font-bold text-[#1D1D1F] text-base">Akun Karcix</h3>
+          </div>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer z-30"
+            aria-label="Tutup"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Header Tabs */}
         <div className="flex bg-[#F5F5F7] p-1 rounded-2xl mb-6 border border-black/5">
