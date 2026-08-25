@@ -13,6 +13,7 @@ import {
   ChevronRight,
   CheckCircle2,
   Send,
+  X,
 } from 'lucide-react';
 import { useAppState, useAppDispatch } from '../../store/appStore';
 import { ORDER_STATUS, MAX_RECEIPT_BYTES, formatRupiah } from '../../data/mockData';
@@ -60,6 +61,7 @@ export default function PaymentPage() {
   const [uploadError, setUploadError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
+  const [submittedModalOpen, setSubmittedModalOpen] = useState(false);
 
   const isPending = activeOrder?.status === ORDER_STATUS.PENDING;
 
@@ -147,9 +149,7 @@ export default function PaymentPage() {
     setTimeout(() => {
       setIsSubmitting(false);
       setSuccessToast(true);
-      setTimeout(() => {
-        navigate('/confirmation');
-      }, 1500);
+      setSubmittedModalOpen(true);
     }, 600);
   };
 
@@ -381,6 +381,66 @@ export default function PaymentPage() {
           <div>
             <p className="font-bold text-sm">Bukti Pembayaran Berhasil Dikirim!</p>
             <p className="text-xs text-green-700">Admin akan segera memverifikasi pesanan Anda.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Popup Bukti Pembayaran Terkirim / Verifikasi */}
+      {submittedModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-2xl border border-black/5 text-center animate-scale-in relative my-auto">
+            <button
+              onClick={() => setSubmittedModalOpen(false)}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 text-amber-500 flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <Clock className="w-8 h-8 animate-pulse" />
+            </div>
+
+            <h3 className="text-xl font-bold text-[#1D1D1F] mb-1">Bukti Pembayaran Terkirim!</h3>
+            <p className="text-xs font-mono text-[#1173d4] font-bold mb-3">ID Pesanan: {activeOrder.id}</p>
+
+            <p className="text-xs text-[#86868B] leading-relaxed mb-6">
+              Bukti pembayaran Anda telah berhasil diunggah dan sedang diproses verifikasi oleh tim Admin Karcix. E-ticket QR Code akan otomatis terbit begitu status dinyatakan lunas.
+            </p>
+
+            <div className="bg-[#F5F5F7] p-4 rounded-2xl text-left text-xs space-y-2 mb-6 border border-black/5">
+              <div className="flex justify-between">
+                <span className="text-[#86868B]">Event:</span>
+                <span className="font-semibold text-[#1D1D1F] truncate max-w-[200px]">
+                  {activeOrder.eventTitle || 'PENSI FEST 2026'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#86868B]">Tiket:</span>
+                <span className="font-semibold text-[#1D1D1F]">
+                  {activeOrder.tierName} × {activeOrder.qty}
+                </span>
+              </div>
+              <div className="flex justify-between font-bold border-t border-black/5 pt-1.5">
+                <span>Total Dibayar:</span>
+                <span className="text-[#1173d4]">{formatRupiah(activeOrder.totalAmount)}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => navigate('/status')}
+                className="btn-primary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer"
+              >
+                <span>Cek Progres Status Pesanan</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="btn-outline w-full py-2.5 text-xs font-semibold cursor-pointer"
+              >
+                Kembali ke Beranda
+              </button>
+            </div>
           </div>
         </div>
       )}

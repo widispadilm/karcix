@@ -15,9 +15,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { avatar } from '../assets/posters';
+import AuthModal from './AuthModal';
 
 // Halaman fokus & dashboard internal punya navigasinya sendiri.
-const HIDDEN_PREFIXES = ['/checkout', '/confirmation', '/payment', '/admin', '/promotor', '/gate', '/login', '/staff', '/register'];
+const HIDDEN_PREFIXES = ['/checkout', '/confirmation', '/payment', '/admin', '/promotor', '/gate', '/staff'];
 
 export default function Navbar() {
   const location = useLocation();
@@ -26,6 +27,7 @@ export default function Navbar() {
   const { currentUser, isAuthenticated, logout } = useAuth();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown on outside click
@@ -104,7 +106,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setDropdownOpen((prev) => !prev)}
-                className="flex items-center gap-2.5 p-1.5 pr-3 rounded-full hover:bg-black/5 transition-all border border-black/5 bg-white/60"
+                className="flex items-center gap-2.5 p-1.5 pr-3 rounded-full hover:bg-black/5 transition-all border border-black/5 bg-white/60 cursor-pointer"
               >
                 <img
                   src={avatar(currentUser.name)}
@@ -136,7 +138,7 @@ export default function Navbar() {
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors"
                     >
-                      <User className="w-4 h-4 text-[#86868B]" /> Tiket & Profil Saya
+                      <User className="w-4 h-4 text-[#86868B]" /> Tiket &amp; Profil Saya
                     </Link>
                     <Link
                       to="/status"
@@ -182,7 +184,7 @@ export default function Navbar() {
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#FF3B30] hover:bg-red-50 transition-colors"
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#FF3B30] hover:bg-red-50 transition-colors cursor-pointer"
                     >
                       <LogOut className="w-4 h-4" /> Keluar
                     </button>
@@ -191,13 +193,13 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <Link
-              to="/login"
-              className="btn-primary text-xs sm:text-sm py-2 px-4 flex items-center gap-1.5 shadow-sm"
+            <button
+              onClick={() => setAuthModalOpen(true)}
+              className="btn-primary text-xs sm:text-sm py-2 px-4 flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
               <span>Masuk</span>
-            </Link>
+            </button>
           )}
         </div>
       </nav>
@@ -207,10 +209,24 @@ export default function Navbar() {
         {mobileLink('/', 'Events', Home)}
         {mobileLink('/search', 'Cari', Search)}
         {mobileLink('/status', 'Pesanan', Receipt)}
-        {isAuthenticated
-          ? mobileLink('/profile', 'Profil', User)
-          : mobileLink('/login', 'Masuk', LogIn)}
+        {isAuthenticated ? (
+          mobileLink('/profile', 'Profil', User)
+        ) : (
+          <button
+            onClick={() => setAuthModalOpen(true)}
+            className="flex flex-col items-center justify-center p-2 rounded-lg text-xs font-medium text-[#86868B] cursor-pointer"
+          >
+            <LogIn className="w-5 h-5 mb-1" />
+            <span>Masuk</span>
+          </button>
+        )}
       </nav>
+
+      {/* Auth Modal Popup */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
     </>
   );
 }

@@ -23,16 +23,25 @@ export default function OrderConfirmationPage() {
   // pada pesanan yang masih menunggu verifikasi.
   if (order.status !== ORDER_STATUS.PAID) {
     return (
-      <div className="min-h-screen bg-[#F5F5F7] flex flex-col items-center justify-center px-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center mb-6 text-[#FF9500]">
-          <Clock className="w-8 h-8" />
+      <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+        <div className="bg-white max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-2xl border border-black/5 text-center animate-scale-in">
+          <div className="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 text-amber-500 flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <Clock className="w-8 h-8 animate-pulse" />
+          </div>
+          <h1 className="text-2xl font-bold text-[#1D1D1F] mb-1">Tiket Belum Terbit</h1>
+          <p className="text-xs font-mono text-[#1173d4] font-bold mb-3">ID Pesanan: {order.id}</p>
+          <p className="text-xs text-[#86868B] leading-relaxed mb-6">
+            Pesanan Anda belum berstatus lunas (sedang diproses verifikasi oleh tim Karcix). E-Ticket QR Code akan otomatis ditampilkan setelah disetujui.
+          </p>
+          <div className="flex flex-col gap-2.5">
+            <Link to="/status" className="btn-primary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 shadow-md">
+              <span>Cek Status Pesanan Saya</span>
+            </Link>
+            <Link to="/" className="btn-outline w-full py-2.5 text-xs font-semibold">
+              Kembali ke Beranda
+            </Link>
+          </div>
         </div>
-        <h1 className="text-2xl font-bold text-[#1D1D1F] mb-2">Tiket belum terbit</h1>
-        <p className="text-[#86868B] mb-8 max-w-sm">
-          Pesanan {order.id} belum berstatus lunas, jadi e-ticket belum bisa ditampilkan.
-          Cek halaman status untuk mengetahui progresnya.
-        </p>
-        <Link to="/status" className="btn-primary">Cek Status Pesanan</Link>
       </div>
     );
   }
