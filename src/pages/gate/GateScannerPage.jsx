@@ -16,10 +16,12 @@ import {
   VolumeX,
   Clock,
   ArrowLeft,
+  LogOut,
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { useAppState, useAppDispatch } from '../../store/appStore';
-import { Link } from 'react-router';
+import { useAuth } from '../../context/AuthContext';
+import { Link, useNavigate } from 'react-router';
 
 // Audio feedback using Web Audio API
 function playSound(type) {
@@ -80,6 +82,8 @@ function playSound(type) {
 }
 
 export default function GateScannerPage() {
+  const navigate = useNavigate();
+  const { logout, currentUser } = useAuth();
   const { event, orders } = useAppState();
   const dispatch = useAppDispatch();
 
@@ -232,16 +236,50 @@ export default function GateScannerPage() {
   const totalCheckedIn = orders.filter((o) => o.checkedIn === true).length;
   const percentage = totalPaid > 0 ? Math.round((totalCheckedIn / totalPaid) * 100) : 0;
 
+  if (!currentUser || (currentUser.role !== 'gate' && currentUser.role !== 'admin')) {
+    return (
+      <div className="min-h-screen bg-[#141416] text-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+        <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 shadow-sm">
+          <ScanLine className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-bold text-white mb-2">Akses Gate Scanner Terbatas</h1>
+        <p className="text-sm text-gray-400 max-w-md mb-6">
+          Halaman ini khusus untuk staf Petugas Gate Karcix. Silakan masuk terlebih dahulu menggunakan akun staf Anda.
+        </p>
+        <div className="flex items-center gap-3">
+          <Link to="/" className="btn-outline text-xs sm:text-sm py-2.5 px-5 bg-white/5 border-white/10 text-white hover:bg-white/10">
+            Kembali ke Beranda
+          </Link>
+          <Link to="/staff" className="btn-primary text-xs sm:text-sm py-2.5 px-5 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white">
+            <ScanLine className="w-4 h-4" /> Masuk Portal Staff
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#141416] text-white p-4 sm:p-6 flex flex-col max-w-lg mx-auto relative animate-fade-in">
       {/* Top Bar */}
       <div className="flex items-center justify-between mb-4">
-        <Link
-          to="/staff"
-          className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Portal Staff
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/staff"
+            className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Portal Staff
+          </Link>
+          <button
+            onClick={() => {
+              logout();
+              navigate('/');
+            }}
+            className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+            title="Keluar dari akun staff"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Keluar
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSoundEnabled((prev) => !prev)}

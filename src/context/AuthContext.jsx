@@ -257,6 +257,12 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     setCurrentUser(null);
+    try {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      localStorage.removeItem('karcix-staff-admin');
+      localStorage.removeItem('karcix-staff-promotor');
+      localStorage.removeItem('karcix-staff-gate');
+    } catch {}
   }, []);
 
   // Staff User Management actions

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, Link } from 'react-router';
 import {
   Shield,
   ClipboardList,
@@ -28,6 +29,8 @@ import {
   MapPin,
   Clock,
   Layers,
+  LogOut,
+  Home,
 } from 'lucide-react';
 import { useAppState, useAppDispatch } from '../../store/appStore';
 import { useAuth } from '../../context/AuthContext';
@@ -62,9 +65,13 @@ const toDateTimeLocal = (value) => (value ? value.slice(0, 16) : '');
 const DEFAULT_CATEGORIES = ['Konser', 'Festival', 'Electronic', 'Jazz & Blues', 'Teater', 'Olahraga'];
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const { events, event, orders } = useAppState();
   const dispatch = useAppDispatch();
   const {
+    currentUser,
+    isAuthenticated,
+    logout,
     customers,
     addCustomerByAdmin,
     updateCustomerData,
@@ -416,6 +423,28 @@ export default function AdminDashboard() {
     showToast(`Akun ${cust.name} berhasil dihapus.`);
   };
 
+  if (!currentUser || currentUser.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-[#F5F5F7] flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+        <div className="w-16 h-16 rounded-3xl bg-blue-50 border border-blue-200 text-[#1173d4] flex items-center justify-center mb-4 shadow-sm">
+          <Shield className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-bold text-[#1D1D1F] mb-2">Akses Administrator Terbatas</h1>
+        <p className="text-sm text-[#86868B] max-w-md mb-6">
+          Halaman ini khusus untuk staf Administrator Karcix. Silakan masuk terlebih dahulu menggunakan akun staf Anda.
+        </p>
+        <div className="flex items-center gap-3">
+          <Link to="/" className="btn-outline text-xs sm:text-sm py-2.5 px-5">
+            Kembali ke Beranda
+          </Link>
+          <Link to="/staff" className="btn-primary text-xs sm:text-sm py-2.5 px-5 flex items-center gap-2">
+            <Shield className="w-4 h-4" /> Masuk Portal Staff
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F5F7] pb-24 pt-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -426,6 +455,38 @@ export default function AdminDashboard() {
             <p className="text-[#86868B] text-sm mt-1">
               Kelola pesanan, verifikasi pembayaran, data pengguna, dan multi-event Karcix
             </p>
+          </div>
+
+          {/* Admin Profile & Logout Bar */}
+          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            <div className="hidden md:flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-black/5 shadow-sm text-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-bold text-[#1D1D1F]">{currentUser?.name || 'Administrator'}</span>
+              <span className="text-[10px] font-bold text-[#1173d4] bg-blue-50 px-1.5 py-0.5 rounded">
+                Admin
+              </span>
+            </div>
+
+            <Link
+              to="/"
+              className="px-3 py-2 bg-white text-xs font-semibold text-[#1D1D1F] hover:bg-gray-50 border border-black/5 rounded-xl shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Home className="w-3.5 h-3.5 text-[#86868B]" />
+              <span className="hidden sm:inline">Ke Beranda</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                navigate('/');
+              }}
+              className="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-[#FF3B30] border border-red-200 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Keluar dari Akun Admin"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Keluar (Logout)</span>
+            </button>
           </div>
         </div>
 

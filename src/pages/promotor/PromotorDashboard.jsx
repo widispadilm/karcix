@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Ticket, Wallet, Package, Download, Search, Users, BarChart3, UserCheck, Layers } from 'lucide-react';
+import { useNavigate, Link } from 'react-router';
+import { Ticket, Wallet, Package, Download, Search, Users, BarChart3, UserCheck, Layers, LogOut, Home } from 'lucide-react';
 import { useAppState } from '../../store/appStore';
+import { useAuth } from '../../context/AuthContext';
 import { formatRupiah, ORDER_STATUS, INITIAL_EVENTS } from '../../data/mockData';
 import StatusBadge from '../../components/StatusBadge';
 
@@ -12,6 +14,8 @@ function csvCell(value) {
 }
 
 export default function PromotorDashboard() {
+  const navigate = useNavigate();
+  const { logout, currentUser } = useAuth();
   const { events, event, orders } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEventId, setSelectedEventId] = useState('all');
@@ -103,6 +107,28 @@ export default function PromotorDashboard() {
     { label: 'Sudah Check-In', value: `${checkedIn} / ${paidOrders.length}`, icon: UserCheck, accent: 'border-l-[#a855f7]', tint: 'bg-purple-100 text-[#7e22ce]' },
   ];
 
+  if (!currentUser || (currentUser.role !== 'promotor' && currentUser.role !== 'admin')) {
+    return (
+      <div className="min-h-screen bg-[#F5F5F7] flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+        <div className="w-16 h-16 rounded-3xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center mb-4 shadow-sm">
+          <BarChart3 className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-bold text-[#1D1D1F] mb-2">Akses Promotor Terbatas</h1>
+        <p className="text-sm text-[#86868B] max-w-md mb-6">
+          Halaman ini khusus untuk staf Promotor Event Karcix. Silakan masuk terlebih dahulu menggunakan akun staf Anda.
+        </p>
+        <div className="flex items-center gap-3">
+          <Link to="/" className="btn-outline text-xs sm:text-sm py-2.5 px-5">
+            Kembali ke Beranda
+          </Link>
+          <Link to="/staff" className="btn-primary text-xs sm:text-sm py-2.5 px-5 flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" /> Masuk Portal Staff
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto min-h-screen pb-20 animate-fade-in bg-[#F5F5F7] text-[#1D1D1F]">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
@@ -134,6 +160,27 @@ export default function PromotorDashboard() {
           <button onClick={handleExportCSV} className="btn-primary inline-flex items-center gap-2 text-xs py-2 px-3.5 shadow-sm cursor-pointer">
             <Download size={16} />
             Export CSV
+          </button>
+
+          <Link
+            to="/"
+            className="px-3 py-2 bg-white text-xs font-semibold text-[#1D1D1F] hover:bg-gray-50 border border-black/5 rounded-xl shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <Home className="w-3.5 h-3.5 text-[#86868B]" />
+            <span className="hidden sm:inline">Ke Beranda</span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              navigate('/');
+            }}
+            className="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-[#FF3B30] border border-red-200 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Keluar dari Akun Promotor"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Keluar</span>
           </button>
         </div>
       </div>
