@@ -5,7 +5,7 @@ import {
   updateCustomerInSupabase,
   deleteCustomerInSupabase,
 } from '../lib/supabaseSync';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
