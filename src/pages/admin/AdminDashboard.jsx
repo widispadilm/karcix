@@ -507,13 +507,26 @@ export default function AdminDashboard() {
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
-                {tab.key === 'verifikasi' && pendingOrders.length > 0 && (
+                {tab.key === 'verifikasi' && (
                   <span
                     className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
-                      isActive ? 'bg-white text-[#1173d4]' : 'bg-red-500 text-white'
+                      isActive
+                        ? 'bg-white/20 text-white'
+                        : pendingOrders.length > 0
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-100 text-gray-600'
                     }`}
                   >
                     {pendingOrders.length}
+                  </span>
+                )}
+                {tab.key === 'riwayat' && (
+                  <span
+                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {orders.length}
                   </span>
                 )}
                 {tab.key === 'pengguna' && (
@@ -548,12 +561,20 @@ export default function AdminDashboard() {
             </h2>
 
             {pendingOrders.length === 0 ? (
-              <div className="bg-white border border-black/5 rounded-2xl p-12 text-center text-[#86868B] shadow-sm">
-                <Inbox className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p className="font-semibold text-[#1D1D1F]">Tidak ada pesanan menunggu verifikasi</p>
-                <p className="text-xs mt-1">
-                  Pesanan baru yang telah mengunggah bukti pembayaran QRIS/transfer akan muncul di sini.
+              <div className="bg-white border border-black/5 rounded-3xl p-10 sm:p-16 text-center shadow-sm flex flex-col items-center justify-center animate-fade-in">
+                <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-100 text-[#1173d4] flex items-center justify-center mb-4 shadow-sm">
+                  <CheckCircle className="w-8 h-8" />
+                </div>
+                <h3 className="font-bold text-lg text-[#1D1D1F] mb-1">
+                  Antrean Verifikasi Pembayaran Kosong
+                </h3>
+                <p className="text-xs text-[#86868B] max-w-md leading-relaxed mb-4">
+                  Saat ini tidak ada pesanan tiket yang menunggu verifikasi pembayaran. Pesanan baru dari pembeli yang mengunggah bukti bayar QRIS/Transfer akan otomatis masuk di sini.
                 </p>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#F5F5F7] border border-black/5 rounded-full text-[11px] font-semibold text-gray-600">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span>Sistem Verifikasi Realtime Aktif</span>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -671,8 +692,30 @@ export default function AdminDashboard() {
                   <tbody>
                     {filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-[#86868B]">
-                          Tidak ada pesanan
+                        <td colSpan={7} className="p-12 text-center">
+                          <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                            <div className="w-14 h-14 rounded-full bg-gray-100 border border-gray-200 text-gray-400 flex items-center justify-center mb-3 shadow-sm">
+                              <Inbox className="w-7 h-7" />
+                            </div>
+                            <h4 className="font-bold text-base text-[#1D1D1F] mb-1">
+                              {historyFilter === 'all'
+                                ? 'Belum Ada Data Pesanan'
+                                : `Tidak Ada Pesanan Berstatus "${historyFilter.toUpperCase()}"`}
+                            </h4>
+                            <p className="text-xs text-[#86868B] leading-relaxed mb-4">
+                              {historyFilter === 'all'
+                                ? 'Seluruh transaksi pesanan tiket yang dibuat oleh pembeli akan muncul di tabel riwayat ini.'
+                                : 'Tidak ditemukan transaksi yang cocok dengan filter status yang Anda pilih.'}
+                            </p>
+                            {historyFilter !== 'all' && (
+                              <button
+                                onClick={() => setHistoryFilter('all')}
+                                className="px-3.5 py-1.5 bg-[#F5F5F7] hover:bg-gray-200 text-[#1D1D1F] border border-black/5 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                              >
+                                Tampilkan Semua Pesanan
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ) : (
