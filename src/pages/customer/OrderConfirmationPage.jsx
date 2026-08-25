@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ArrowLeft, Check, MapPin, Printer, Clock } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -8,6 +9,22 @@ import { poster } from '../../assets/posters';
 export default function OrderConfirmationPage() {
   const navigate = useNavigate();
   const { lastCreatedOrder: order, event } = useAppState();
+  const [countdown, setCountdown] = useState(3);
+
+  useEffect(() => {
+    if (!order || order.status === ORDER_STATUS.PAID) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          navigate('/status');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [order, navigate]);
 
   if (!order) {
     return (
@@ -19,8 +36,7 @@ export default function OrderConfirmationPage() {
     );
   }
 
-  // Halaman ini hanya untuk pesanan yang sudah lunas — sebelumnya e-ticket ikut tampil
-  // pada pesanan yang masih menunggu verifikasi.
+  // Halaman ini hanya untuk pesanan yang sudah lunas — jika belum lunas, alihkan ke status
   if (order.status !== ORDER_STATUS.PAID) {
     return (
       <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
@@ -30,12 +46,18 @@ export default function OrderConfirmationPage() {
           </div>
           <h1 className="text-2xl font-bold text-[#1D1D1F] mb-1">Tiket Belum Terbit</h1>
           <p className="text-xs font-mono text-[#1173d4] font-bold mb-3">ID Pesanan: {order.id}</p>
-          <p className="text-xs text-[#86868B] leading-relaxed mb-6">
+          <p className="text-xs text-[#86868B] leading-relaxed mb-4">
             Pesanan Anda belum berstatus lunas (sedang diproses verifikasi oleh tim Karcix). E-Ticket QR Code akan otomatis ditampilkan setelah disetujui.
           </p>
+
+          <div className="mb-6 p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-[#1173d4] font-semibold flex items-center justify-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#1173d4] animate-ping shrink-0" />
+            <span>Mengalihkan otomatis ke Halaman Status dalam <strong>{countdown}</strong> detik...</span>
+          </div>
+
           <div className="flex flex-col gap-2.5">
             <Link to="/status" className="btn-primary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 shadow-md">
-              <span>Cek Status Pesanan Saya</span>
+              <span>Cek Status Pesanan Saya Sekarang</span>
             </Link>
             <Link to="/" className="btn-outline w-full py-2.5 text-xs font-semibold">
               Kembali ke Beranda

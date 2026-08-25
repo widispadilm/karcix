@@ -62,8 +62,26 @@ export default function PaymentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
   const [submittedModalOpen, setSubmittedModalOpen] = useState(false);
+  const [modalCountdown, setModalCountdown] = useState(3);
 
   const isPending = activeOrder?.status === ORDER_STATUS.PENDING;
+
+  // Auto redirect ke /status dalam 3 detik saat modal terkirim terbuka
+  useEffect(() => {
+    if (!submittedModalOpen) return;
+    setModalCountdown(3);
+    const timer = setInterval(() => {
+      setModalCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          navigate('/status');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [submittedModalOpen, navigate]);
 
   // Sisa waktu dihitung ulang dari timestamp pesanan
   useEffect(() => {
@@ -407,7 +425,7 @@ export default function PaymentPage() {
               Bukti pembayaran Anda telah berhasil diunggah dan sedang diproses verifikasi oleh tim Admin Karcix. E-ticket QR Code akan otomatis terbit begitu status dinyatakan lunas.
             </p>
 
-            <div className="bg-[#F5F5F7] p-4 rounded-2xl text-left text-xs space-y-2 mb-6 border border-black/5">
+            <div className="bg-[#F5F5F7] p-4 rounded-2xl text-left text-xs space-y-2 mb-4 border border-black/5">
               <div className="flex justify-between">
                 <span className="text-[#86868B]">Event:</span>
                 <span className="font-semibold text-[#1D1D1F] truncate max-w-[200px]">
@@ -424,6 +442,12 @@ export default function PaymentPage() {
                 <span>Total Dibayar:</span>
                 <span className="text-[#1173d4]">{formatRupiah(activeOrder.totalAmount)}</span>
               </div>
+            </div>
+
+            {/* Countdown Auto-Redirect Badge */}
+            <div className="mb-6 p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-[#1173d4] font-semibold flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#1173d4] animate-ping shrink-0" />
+              <span>Mengalihkan otomatis ke Halaman Status dalam <strong>{modalCountdown}</strong> detik...</span>
             </div>
 
             <div className="flex flex-col gap-2.5">
