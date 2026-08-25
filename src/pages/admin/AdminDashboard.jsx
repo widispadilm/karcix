@@ -154,7 +154,7 @@ export default function AdminDashboard() {
   }, [currentSelectedEvent]);
 
   const pendingOrders = useMemo(
-    () => orders.filter((o) => o.status === ORDER_STATUS.PENDING && o.receiptUrl),
+    () => orders.filter((o) => o.status === ORDER_STATUS.PENDING),
     [orders]
   );
 
@@ -494,25 +494,26 @@ export default function AdminDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border border-black/5 overflow-x-auto">
+        <div className="relative z-10 flex bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border border-black/5 overflow-x-auto shadow-sm">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
             return (
               <button
                 key={tab.key}
+                type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 min-w-[140px] py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                className={`flex-1 min-w-[140px] py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer select-none active:scale-[0.98] ${
                   isActive
-                    ? 'bg-[#1173d4] text-white shadow-md'
+                    ? 'bg-[#1173d4] text-white shadow-md font-bold'
                     : 'text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/5'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
+                <Icon className="w-4 h-4 shrink-0 pointer-events-none" />
+                <span className="pointer-events-none whitespace-nowrap">{tab.label}</span>
                 {tab.key === 'verifikasi' && (
                   <span
-                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold pointer-events-none ${
                       isActive
                         ? 'bg-white/20 text-white'
                         : pendingOrders.length > 0
@@ -525,7 +526,7 @@ export default function AdminDashboard() {
                 )}
                 {tab.key === 'riwayat' && (
                   <span
-                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold pointer-events-none ${
                       isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
                     }`}
                   >
@@ -534,7 +535,7 @@ export default function AdminDashboard() {
                 )}
                 {tab.key === 'pengguna' && (
                   <span
-                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold pointer-events-none ${
                       isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
                     }`}
                   >
@@ -543,7 +544,7 @@ export default function AdminDashboard() {
                 )}
                 {tab.key === 'kelola' && (
                   <span
-                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold pointer-events-none ${
                       isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'
                     }`}
                   >
