@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
 import { Lock, Timer, QrCode, Landmark, Wallet, ShieldCheck, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAppState, useAppDispatch } from '../../store/appStore';
-import { formatRupiah, MAX_QTY_PER_ORDER } from '../../data/mockData';
+import { formatRupiah, MAX_QTY_PER_ORDER, generateOrderId } from '../../data/mockData';
 import CountdownTimer from '../../components/CountdownTimer';
 
 const PAYMENT_METHODS = [
@@ -41,11 +41,22 @@ export default function CheckoutPage() {
     if (soldOut || holdExpired) return;
     if (!form.buyerName || !form.email || !form.whatsapp) return;
 
+    const newOrderId = generateOrderId();
+    try {
+      localStorage.setItem('karcix-last-order-id', newOrderId);
+    } catch {}
+
     dispatch({
       type: 'CREATE_ORDER',
-      payload: { ...form, tierId, qty: Math.min(qty, maxQty), paymentMethod },
+      payload: {
+        id: newOrderId,
+        ...form,
+        tierId,
+        qty: Math.min(qty, maxQty),
+        paymentMethod,
+      },
     });
-    navigate('/payment');
+    navigate('/payment', { state: { orderId: newOrderId } });
   };
 
   if (soldOut) {

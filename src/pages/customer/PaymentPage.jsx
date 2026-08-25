@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router';
 import {
   Clock,
   Copy,
@@ -27,42 +27,56 @@ const BANK_ACCOUNTS = [
 ];
 
 function secondsLeft(order) {
-  if (!order) return 0;
+  if (!order || !order.timestamp) return 0;
   const elapsed = (Date.now() - new Date(order.timestamp).getTime()) / 1000;
   return Math.max(0, Math.round(PAYMENT_WINDOW_SECONDS - elapsed));
 }
 
 export default function PaymentPage() {
-  const { lastCreatedOrder } = useAppState();
+  const { lastCreatedOrder, orders, lastCreatedOrderId } = useAppState();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  const [timeLeft, setTimeLeft] = useState(() => secondsLeft(lastCreatedOrder));
+  const targetOrderId =
+    location.state?.orderId ||
+    searchParams.get('orderId') ||
+    localStorage.getItem('karcix-last-order-id');
+
+  const activeOrder =
+    (targetOrderId && orders.find((o) => o.id === targetOrderId)) ||
+    lastCreatedOrder ||
+    (lastCreatedOrderId && orders.find((o) => o.id === lastCreatedOrderId)) ||
+    [...orders].reverse().find((o) => o.status === ORDER_STATUS.PENDING) ||
+    null;
+
+  const [timeLeft, setTimeLeft] = useState(() => secondsLeft(activeOrder));
   const [activeTab, setActiveTab] = useState(
-    lastCreatedOrder?.paymentMethod === 'bank' ? 'transfer' : 'qris'
+    activeOrder?.paymentMethod === 'bank' ? 'transfer' : 'qris'
   );
   const [copiedText, setCopiedText] = useState('');
-  const [selectedFileUrl, setSelectedFileUrl] = useState(lastCreatedOrder?.receiptUrl || null);
+  const [selectedFileUrl, setSelectedFileUrl] = useState(activeOrder?.receiptUrl || null);
   const [uploadError, setUploadError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
 
-  const isPending = lastCreatedOrder?.status === ORDER_STATUS.PENDING;
+  const isPending = activeOrder?.status === ORDER_STATUS.PENDING;
 
   // Sisa waktu dihitung ulang dari timestamp pesanan
   useEffect(() => {
-    if (!lastCreatedOrder || !isPending) return;
-    setTimeLeft(secondsLeft(lastCreatedOrder));
-    const timerId = setInterval(() => setTimeLeft(secondsLeft(lastCreatedOrder)), 1000);
+    if (!activeOrder || !isPending) return;
+    setTimeLeft(secondsLeft(activeOrder));
+    const timerId = setInterval(() => setTimeLeft(secondsLeft(activeOrder)), 1000);
     return () => clearInterval(timerId);
-  }, [lastCreatedOrder, isPending]);
+  }, [activeOrder, isPending]);
 
   // Saat waktu habis, kembalikan kuota tier
   useEffect(() => {
-    if (isPending && timeLeft <= 0 && lastCreatedOrder) {
-      dispatch({ type: 'EXPIRE_ORDER', payload: { orderId: lastCreatedOrder.id } });
+    if (isPending && timeLeft <= 0 && activeOrder) {
+      dispatch({ type: 'EXPIRE_ORDER', payload: { orderId: activeOrder.id } });
     }
-  }, [isPending, timeLeft, lastCreatedOrder, dispatch]);
+  }, [isPending, timeLeft, activeOrder, dispatch]);
 
   const timerColorClass = useMemo(() => {
     if (timeLeft > 300) return 'text-[#1D1D1F]';
@@ -70,7 +84,7 @@ export default function PaymentPage() {
     return 'text-[#FF3B30] animate-pulse';
   }, [timeLeft]);
 
-  if (!lastCreatedOrder) {
+  if (!activeOrder) {
     return (
       <div className="min-h-screen bg-[#F5F5F7] flex flex-col items-center justify-center text-[#1D1D1F] px-4 text-center">
         <AlertCircle className="w-16 h-16 text-[#FF9500] mb-4" />
@@ -127,7 +141,7 @@ export default function PaymentPage() {
     setIsSubmitting(true);
     dispatch({
       type: 'UPLOAD_RECEIPT',
-      payload: { orderId: lastCreatedOrder.id, receiptUrl: selectedFileUrl },
+      payload: { orderId: activeOrder.id, receiptUrl: selectedFileUrl },
     });
 
     setTimeout(() => {
@@ -142,8 +156,8 @@ export default function PaymentPage() {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timeString = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  const baseAmount = lastCreatedOrder.totalAmount - lastCreatedOrder.uniqueCode;
-  const isExpired = !isPending && lastCreatedOrder.status === ORDER_STATUS.EXPIRED;
+  const baseAmount = activeOrder.totalAmount - activeOrder.uniqueCode;
+  const isExpired = !isPending && activeOrder.status === ORDER_STATUS.EXPIRED;
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] pb-24 pt-8 px-4 sm:px-6">
@@ -173,7 +187,7 @@ export default function PaymentPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-black/5">
                 <div>
                   <span className="text-xs font-semibold text-[#86868B] uppercase tracking-wider block mb-1">
-                    ID Pesanan: {lastCreatedOrder.id}
+                    ID Pesanan: {activeOrder.id}
                   </span>
                   <h1 className="text-2xl font-bold text-[#1D1D1F]">Instruksi Pembayaran</h1>
                 </div>
@@ -189,7 +203,7 @@ export default function PaymentPage() {
               <div className="py-6 border-b border-black/5 space-y-2 text-sm">
                 <div className="flex justify-between text-[#86868B]">
                   <span>
-                    {lastCreatedOrder.tierName} × {lastCreatedOrder.qty}
+                    {activeOrder.tierName} × {activeOrder.qty}
                   </span>
                   <span>{formatRupiah(baseAmount)}</span>
                 </div>
@@ -200,12 +214,12 @@ export default function PaymentPage() {
                       otomatis
                     </span>
                   </span>
-                  <span className="font-mono text-[#1173d4]">+{lastCreatedOrder.uniqueCode}</span>
+                  <span className="font-mono text-[#1173d4]">+{activeOrder.uniqueCode}</span>
                 </div>
                 <div className="flex justify-between text-base font-bold text-[#1D1D1F] pt-2 border-t border-black/5">
                   <span>Total Tagihan</span>
                   <span className="text-xl text-[#1173d4]">
-                    {formatRupiah(lastCreatedOrder.totalAmount)}
+                    {formatRupiah(activeOrder.totalAmount)}
                   </span>
                 </div>
               </div>
@@ -215,7 +229,7 @@ export default function PaymentPage() {
                 <div className="bg-gray-100 p-1.5 mb-6 flex gap-2 rounded-2xl border border-black/5">
                   <button
                     onClick={() => setActiveTab('qris')}
-                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       activeTab === 'qris'
                         ? 'bg-[#1173d4] text-white shadow-md'
                         : 'text-[#86868B] hover:text-[#1D1D1F]'
@@ -226,7 +240,7 @@ export default function PaymentPage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('transfer')}
-                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       activeTab === 'transfer'
                         ? 'bg-[#1173d4] text-white shadow-md'
                         : 'text-[#86868B] hover:text-[#1D1D1F]'
@@ -264,7 +278,7 @@ export default function PaymentPage() {
                         </div>
                         <button
                           onClick={() => handleCopy(item.acc)}
-                          className="bg-white hover:bg-gray-50 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-semibold transition-colors border border-black/5 shadow-sm"
+                          className="bg-white hover:bg-gray-50 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-semibold transition-colors border border-black/5 shadow-sm cursor-pointer"
                         >
                           {copiedText === item.acc ? (
                             <Check className="w-3.5 h-3.5 text-[#34C759]" />

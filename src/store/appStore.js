@@ -82,7 +82,7 @@ function releaseOrder(state, orderId, nextStatus) {
 export function appReducer(state, action) {
   switch (action.type) {
     case 'CREATE_ORDER': {
-      const { buyerName, email, whatsapp, tierId, qty, paymentMethod } = action.payload;
+      const { id, buyerName, email, whatsapp, tierId, qty, paymentMethod } = action.payload;
       const tier = state.event.tiers.find((t) => t.id === tierId);
       if (!tier) return state;
 
@@ -91,9 +91,10 @@ export function appReducer(state, action) {
       const safeQty = Math.min(qty, remaining, MAX_QTY_PER_ORDER);
       if (safeQty < 1) return state;
 
-      const uniqueCode = generateUniqueCode();
+      const uniqueCode = action.payload.uniqueCode || generateUniqueCode();
+      const orderId = id || generateOrderId();
       const newOrder = {
-        id: generateOrderId(),
+        id: orderId,
         buyerName,
         email,
         whatsapp,
@@ -111,6 +112,10 @@ export function appReducer(state, action) {
         timestamp: new Date().toISOString(),
       };
 
+      try {
+        localStorage.setItem('karcix-last-order-id', orderId);
+      } catch {}
+
       return {
         ...state,
         event: {
@@ -119,8 +124,8 @@ export function appReducer(state, action) {
             t.id === tierId ? { ...t, sold: t.sold + safeQty } : t
           ),
         },
-        orders: [...state.orders, newOrder],
-        lastCreatedOrderId: newOrder.id,
+        orders: [...state.orders.filter((o) => o.id !== orderId), newOrder],
+        lastCreatedOrderId: orderId,
       };
     }
 
@@ -181,11 +186,27 @@ export function appReducer(state, action) {
       };
     }
 
-    case 'SET_STATE':
+    case 'SET_STATE': {
+      const serverOrders = action.payload.orders || [];
+      const serverIds = new Set(serverOrders.map((o) => o.id));
+      // Pertahankan pesanan lokal yang sedang dalam proses kirim ke Supabase
+      const localInFlight = (state.orders || []).filter((o) => !serverIds.has(o.id));
+      const mergedOrders = [...serverOrders, ...localInFlight];
+
+      let lastId = state.lastCreatedOrderId || action.payload.lastCreatedOrderId;
+      if (!lastId) {
+        try {
+          lastId = localStorage.getItem('karcix-last-order-id');
+        } catch {}
+      }
+
       return {
         ...state,
         ...action.payload,
+        orders: mergedOrders,
+        lastCreatedOrderId: lastId,
       };
+    }
 
     case 'RESET':
       return initialState;
