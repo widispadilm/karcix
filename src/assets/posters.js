@@ -78,3 +78,34 @@ export function heroPoster(seed, label) {
 export function avatar(name) {
   return poster(name, { label: name, width: 200, height: 200 });
 }
+
+/** Koleksi gambar galeri multi-foto event */
+export function eventGallery(seed, title) {
+  return [
+    {
+      id: 1,
+      title: 'Poster Utama',
+      caption: `${title || 'Event'} Official Poster`,
+      url: poster(seed, { label: title || 'PF' }),
+    },
+    {
+      id: 2,
+      title: 'Denah & Stage Map',
+      caption: 'Layout Panggung, VIP & Festival Area',
+      url: poster(`${seed}-stage-map`, { label: 'STAGE' }),
+    },
+    {
+      id: 3,
+      title: 'Lineup Guest Star',
+      caption: 'Penampilan Bintang Tamu & Musisi',
+      url: poster(`${seed}-lineup-stars`, { label: 'LINEUP' }),
+    },
+    {
+      id: 4,
+      title: 'Venue & Fasilitas',
+      caption: 'Suasana Festival, Food Court & Booth',
+      url: poster(`${seed}-festival-venue`, { label: 'VENUE' }),
+    },
+  ];
+}
+

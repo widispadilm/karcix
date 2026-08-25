@@ -45,63 +45,75 @@ export default function AppProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorage);
   }, [baseDispatch]);
 
-  // Load from Supabase on mount
+  // Load from Supabase on mount & Realtime Sync
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
     let isMounted = true;
     async function load() {
-      const data = await fetchSupabaseState();
-      if (data && isMounted) {
-        baseDispatch({
-          type: 'SET_STATE',
-          payload: {
-            event: data.event || state.event,
-            orders: data.orders || state.orders,
-          },
-        });
+      try {
+        const data = await fetchSupabaseState();
+        if (data && isMounted) {
+          baseDispatch({
+            type: 'SET_STATE',
+            payload: {
+              event: data.event,
+              orders: data.orders,
+            },
+          });
+        }
+      } catch (err) {
+        console.error('Error in fetchSupabaseState:', err);
       }
     }
+
     load();
 
+    // Re-sync on window focus (e.g. when user switches back to browser tab)
+    const handleFocus = () => load();
+    window.addEventListener('focus', handleFocus);
+
+    // Periodic sync every 4 seconds to guarantee multi-device sync
+    const pollInterval = setInterval(load, 4000);
+
     // Setup Supabase Realtime subscriptions
+    let channel;
     if (supabase) {
-      const channel = supabase
-        .channel('karcix-realtime')
+      channel = supabase
+        .channel('karcix-realtime-all')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'orders' },
-          async () => {
-            const data = await fetchSupabaseState();
-            if (data && isMounted) {
-              baseDispatch({
-                type: 'SET_STATE',
-                payload: { event: data.event, orders: data.orders },
-              });
-            }
+          () => {
+            load();
           }
         )
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'event_tiers' },
-          async () => {
-            const data = await fetchSupabaseState();
-            if (data && isMounted) {
-              baseDispatch({
-                type: 'SET_STATE',
-                payload: { event: data.event, orders: data.orders },
-              });
-            }
+          () => {
+            load();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'events' },
+          () => {
+            load();
           }
         )
         .subscribe();
-
-      return () => {
-        isMounted = false;
-        supabase.removeChannel(channel);
-      };
     }
-  }, []);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(pollInterval);
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [baseDispatch]);
 
   // Enhanced dispatch that writes to Supabase asynchronously if configured
   const dispatch = useCallback(

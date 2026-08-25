@@ -1,11 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router';
 import {
-  Clock, Copy, Check, Upload, AlertCircle, QrCode, Building2,
-  ArrowLeft, ImageIcon, ChevronRight,
+  Clock,
+  Copy,
+  Check,
+  Upload,
+  AlertCircle,
+  QrCode,
+  Building2,
+  ArrowLeft,
+  ImageIcon,
+  ChevronRight,
+  CheckCircle2,
+  Send,
 } from 'lucide-react';
 import { useAppState, useAppDispatch } from '../../store/appStore';
-import { ORDER_STATUS, MAX_RECEIPT_BYTES } from '../../data/mockData';
+import { ORDER_STATUS, MAX_RECEIPT_BYTES, formatRupiah } from '../../data/mockData';
 import qrisImage from '../../assets/qris-placeholder.jpg';
 
 /** Batas waktu pembayaran, dihitung dari waktu pesanan dibuat. */
@@ -32,12 +42,14 @@ export default function PaymentPage() {
     lastCreatedOrder?.paymentMethod === 'bank' ? 'transfer' : 'qris'
   );
   const [copiedText, setCopiedText] = useState('');
+  const [selectedFileUrl, setSelectedFileUrl] = useState(lastCreatedOrder?.receiptUrl || null);
   const [uploadError, setUploadError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successToast, setSuccessToast] = useState(false);
 
   const isPending = lastCreatedOrder?.status === ORDER_STATUS.PENDING;
 
-  // Sisa waktu dihitung ulang dari timestamp pesanan, bukan dari hitungan mundur lokal,
-  // supaya refresh halaman tidak me-reset batas waktu.
+  // Sisa waktu dihitung ulang dari timestamp pesanan
   useEffect(() => {
     if (!lastCreatedOrder || !isPending) return;
     setTimeLeft(secondsLeft(lastCreatedOrder));
@@ -45,7 +57,7 @@ export default function PaymentPage() {
     return () => clearInterval(timerId);
   }, [lastCreatedOrder, isPending]);
 
-  // Saat waktu habis, kembalikan kuota tier — kalau tidak, stok bocor tiap pesanan mangkrak.
+  // Saat waktu habis, kembalikan kuota tier
   useEffect(() => {
     if (isPending && timeLeft <= 0 && lastCreatedOrder) {
       dispatch({ type: 'EXPIRE_ORDER', payload: { orderId: lastCreatedOrder.id } });
@@ -64,7 +76,9 @@ export default function PaymentPage() {
         <AlertCircle className="w-16 h-16 text-[#FF9500] mb-4" />
         <h2 className="text-2xl font-bold mb-2">Tidak ada pesanan aktif</h2>
         <p className="text-[#86868B] mb-6">Silakan pilih tiket dan lakukan checkout terlebih dahulu.</p>
-        <Link to="/" className="btn-primary">Kembali ke Beranda</Link>
+        <Link to="/" className="btn-primary">
+          Kembali ke Beranda
+        </Link>
       </div>
     );
   }
@@ -98,190 +112,193 @@ export default function PaymentPage() {
     const reader = new FileReader();
     reader.onerror = () => setUploadError('Gagal membaca file. Coba lagi.');
     reader.onloadend = () => {
-      dispatch({
-        type: 'UPLOAD_RECEIPT',
-        payload: { orderId: lastCreatedOrder.id, receiptUrl: reader.result },
-      });
+      setSelectedFileUrl(reader.result);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleSubmitReceipt = (e) => {
+    e.preventDefault();
+    if (!selectedFileUrl) {
+      setUploadError('Silakan pilih foto / screenshot bukti transfer QRIS terlebih dahulu.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    dispatch({
+      type: 'UPLOAD_RECEIPT',
+      payload: { orderId: lastCreatedOrder.id, receiptUrl: selectedFileUrl },
+    });
+
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setSuccessToast(true);
+      setTimeout(() => {
+        navigate('/confirmation');
+      }, 1500);
+    }, 600);
   };
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timeString = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   const baseAmount = lastCreatedOrder.totalAmount - lastCreatedOrder.uniqueCode;
-  const receiptUrl = lastCreatedOrder.receiptUrl;
-  const expired = !isPending && lastCreatedOrder.status === ORDER_STATUS.EXPIRED;
+  const isExpired = !isPending && lastCreatedOrder.status === ORDER_STATUS.EXPIRED;
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] pb-20 pt-8 px-4 sm:px-6">
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] pb-24 pt-8 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-[#86868B] hover:text-[#1D1D1F] transition-colors mb-6 group"
+          className="inline-flex items-center gap-2 text-sm text-[#86868B] hover:text-[#1D1D1F] transition-colors mb-6"
         >
-          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span>Ke Beranda</span>
+          <ArrowLeft className="w-4 h-4" /> Kembali ke Beranda
         </Link>
 
-        {expired ? (
-          <div className="glass-card z-depth-1 border border-[#FF3B30]/30 p-8 text-center animate-fade-in">
-            <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
-              <Clock className="w-10 h-10 text-[#FF3B30]" />
-            </div>
-            <h1 className="text-3xl font-bold mb-2">Waktu pembayaran habis</h1>
-            <p className="text-[#86868B] mb-8">
-              Pesanan {lastCreatedOrder.id} kedaluwarsa dan kuota tiketnya sudah dikembalikan.
-              Silakan lakukan pemesanan ulang.
-            </p>
-            <button onClick={() => navigate('/')} className="btn-primary">
-              Pesan Ulang
-            </button>
-          </div>
-        ) : !isPending ? (
+        {isExpired ? (
           <div className="glass-card z-depth-1 p-8 text-center animate-fade-in">
-            <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-[#34C759]" />
-            </div>
-            <h1 className="text-3xl font-bold mb-2">Pesanan sudah diproses</h1>
-            <p className="text-[#86868B] mb-8">
-              Status pesanan {lastCreatedOrder.id} saat ini bukan lagi menunggu pembayaran.
+            <AlertCircle className="w-16 h-16 text-[#FF3B30] mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Batas Waktu Pembayaran Habis</h2>
+            <p className="text-[#86868B] mb-6">
+              Pesanan Anda otomatis dibatalkan dan kuota tiket telah dikembalikan.
             </p>
-            <button onClick={() => navigate('/status')} className="btn-primary">
-              Lihat Status Pesanan
-            </button>
+            <Link to="/" className="btn-primary inline-flex">
+              Pesan Ulang Tiket
+            </Link>
           </div>
         ) : (
-          <div className="space-y-6 animate-slide-up">
-            <div className="glass-card z-depth-1 p-6 sm:p-8 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-[#1173d4]" />
-
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-6 mb-6">
+          <div className="space-y-6">
+            {/* Header Ringkasan */}
+            <div className="glass-card z-depth-1 p-6 sm:p-8 animate-slide-up">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-black/5">
                 <div>
-                  <p className="text-sm text-[#86868B] mb-1">ID Pesanan</p>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-lg font-bold">{lastCreatedOrder.id}</span>
-                    <button
-                      onClick={() => handleCopy(lastCreatedOrder.id)}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-[#86868B]"
-                      title="Salin ID"
-                    >
-                      {copiedText === lastCreatedOrder.id ? (
-                        <Check className="w-4 h-4 text-[#34C759]" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
+                  <span className="text-xs font-semibold text-[#86868B] uppercase tracking-wider block mb-1">
+                    ID Pesanan: {lastCreatedOrder.id}
+                  </span>
+                  <h1 className="text-2xl font-bold text-[#1D1D1F]">Instruksi Pembayaran</h1>
                 </div>
-
-                <div className="bg-gray-50 px-5 py-3 rounded-xl border border-gray-200 flex items-center gap-3">
-                  <Clock className={`w-5 h-5 ${timerColorClass}`} />
-                  <div className="flex flex-col">
-                    <span className="text-xs text-[#86868B]">Sisa Waktu</span>
-                    <span className={`font-mono text-xl font-bold tabular-nums ${timerColorClass}`}>
-                      {timeString}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-center mb-8">
-                <p className="text-[#86868B] mb-2">Total Pembayaran</p>
-                <div className="text-4xl sm:text-5xl font-black mb-2 flex items-baseline justify-center tracking-tight">
-                  <span>Rp {baseAmount.toLocaleString('id-ID')}</span>
-                  <span className="text-[#1173d4] font-bold font-mono">
-                    .{String(lastCreatedOrder.uniqueCode).padStart(3, '0')}
+                <div className="flex items-center gap-2 bg-[#F5F5F7] px-4 py-2 rounded-xl">
+                  <Clock className="w-5 h-5 text-[#86868B]" />
+                  <span className={`font-mono text-lg font-bold ${timerColorClass}`}>
+                    {timeString}
                   </span>
                 </div>
-                <div className="inline-flex items-center gap-2 bg-amber-50 text-[#B06000] text-sm px-4 py-2 rounded-lg border border-amber-200">
-                  <AlertCircle className="w-4 h-4" />
-                  Transfer tepat sampai 3 digit terakhir agar terverifikasi otomatis
+              </div>
+
+              {/* Rincian Nominal */}
+              <div className="py-6 border-b border-black/5 space-y-2 text-sm">
+                <div className="flex justify-between text-[#86868B]">
+                  <span>
+                    {lastCreatedOrder.tierName} × {lastCreatedOrder.qty}
+                  </span>
+                  <span>{formatRupiah(baseAmount)}</span>
+                </div>
+                <div className="flex justify-between text-[#86868B]">
+                  <span className="flex items-center gap-1">
+                    Kode Unik
+                    <span className="text-[10px] bg-blue-50 text-[#1173d4] px-1.5 py-0.5 rounded font-mono">
+                      otomatis
+                    </span>
+                  </span>
+                  <span className="font-mono text-[#1173d4]">+{lastCreatedOrder.uniqueCode}</span>
+                </div>
+                <div className="flex justify-between text-base font-bold text-[#1D1D1F] pt-2 border-t border-black/5">
+                  <span>Total Tagihan</span>
+                  <span className="text-xl text-[#1173d4]">
+                    {formatRupiah(lastCreatedOrder.totalAmount)}
+                  </span>
                 </div>
               </div>
 
-              <div className="bg-gray-50 p-2 mb-6 flex gap-2 rounded-xl border border-gray-200">
-                <button
-                  onClick={() => setActiveTab('qris')}
-                  className={`flex-1 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all ${
-                    activeTab === 'qris'
-                      ? 'bg-[#1173d4] text-white'
-                      : 'text-[#86868B] hover:text-[#1D1D1F] hover:bg-gray-100'
-                  }`}
-                >
-                  <QrCode className="w-4 h-4" />
-                  QRIS
-                </button>
-                <button
-                  onClick={() => setActiveTab('transfer')}
-                  className={`flex-1 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all ${
-                    activeTab === 'transfer'
-                      ? 'bg-[#1173d4] text-white'
-                      : 'text-[#86868B] hover:text-[#1D1D1F] hover:bg-gray-100'
-                  }`}
-                >
-                  <Building2 className="w-4 h-4" />
-                  Transfer Bank
-                </button>
-              </div>
-
-              {activeTab === 'qris' ? (
-                <div className="flex flex-col items-center animate-fade-in">
-                  <div className="bg-white p-4 mb-4 w-64 h-64 flex items-center justify-center rounded-xl border border-gray-100">
-                    <img
-                      src={qrisImage}
-                      alt="Kode QRIS pembayaran Karcix"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <p className="text-sm text-[#86868B] text-center max-w-xs">
-                    Scan QRIS di atas menggunakan aplikasi e-wallet atau mobile banking Anda
-                  </p>
+              {/* Pilihan Tab Pembayaran */}
+              <div className="mt-6">
+                <div className="bg-gray-100 p-1.5 mb-6 flex gap-2 rounded-2xl border border-black/5">
+                  <button
+                    onClick={() => setActiveTab('qris')}
+                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                      activeTab === 'qris'
+                        ? 'bg-[#1173d4] text-white shadow-md'
+                        : 'text-[#86868B] hover:text-[#1D1D1F]'
+                    }`}
+                  >
+                    <QrCode className="w-4 h-4" />
+                    QRIS (GoPay, OVO, Dana, BCA)
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('transfer')}
+                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                      activeTab === 'transfer'
+                        ? 'bg-[#1173d4] text-white shadow-md'
+                        : 'text-[#86868B] hover:text-[#1D1D1F]'
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4" />
+                    Transfer Bank Manual
+                  </button>
                 </div>
-              ) : (
-                <div className="space-y-4 animate-fade-in">
-                  {BANK_ACCOUNTS.map((item) => (
-                    <div
-                      key={item.acc}
-                      className="bg-[#F5F5F7] p-4 rounded-xl border border-gray-200 flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="text-sm text-[#86868B] mb-1">{item.bank}</p>
-                        <p className="font-mono text-lg font-bold">{item.acc}</p>
-                        <p className="text-xs text-[#86868B] mt-1">a/n Panitia PENSI FEST</p>
-                      </div>
-                      <button
-                        onClick={() => handleCopy(item.acc)}
-                        className="bg-white hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors border border-gray-200"
-                      >
-                        {copiedText === item.acc ? (
-                          <Check className="w-4 h-4 text-[#34C759]" />
-                        ) : (
-                          <Copy className="w-4 h-4 text-[#86868B]" />
-                        )}
-                        {copiedText === item.acc ? 'Tersalin' : 'Salin'}
-                      </button>
+
+                {activeTab === 'qris' ? (
+                  <div className="flex flex-col items-center animate-fade-in">
+                    <div className="bg-white p-4 mb-3 w-64 h-64 flex items-center justify-center rounded-2xl border border-black/10 shadow-sm">
+                      <img
+                        src={qrisImage}
+                        alt="Kode QRIS pembayaran Karcix"
+                        className="w-full h-full object-contain"
+                      />
                     </div>
-                  ))}
-                </div>
-              )}
+                    <p className="text-xs text-[#86868B] text-center max-w-xs mb-2">
+                      Scan kode QRIS di atas dengan m-Banking / e-Wallet apa saja.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 animate-fade-in">
+                    {BANK_ACCOUNTS.map((item) => (
+                      <div
+                        key={item.acc}
+                        className="bg-[#F5F5F7] p-4 rounded-2xl border border-black/5 flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="text-xs font-semibold text-[#86868B]">{item.bank}</p>
+                          <p className="font-mono text-base font-bold text-[#1D1D1F]">{item.acc}</p>
+                          <p className="text-[11px] text-[#86868B]">a/n Panitia Karcix ID</p>
+                        </div>
+                        <button
+                          onClick={() => handleCopy(item.acc)}
+                          className="bg-white hover:bg-gray-50 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-semibold transition-colors border border-black/5 shadow-sm"
+                        >
+                          {copiedText === item.acc ? (
+                            <Check className="w-3.5 h-3.5 text-[#34C759]" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5 text-[#86868B]" />
+                          )}
+                          {copiedText === item.acc ? 'Tersalin' : 'Salin'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Upload bukti */}
-            <div
-              className="glass-card z-depth-1 p-6 sm:p-8 animate-slide-up"
-              style={{ animationDelay: '200ms' }}
+            {/* Form Upload & Submit Bukti Pembayaran QRIS/Transfer */}
+            <form
+              onSubmit={handleSubmitReceipt}
+              className="glass-card z-depth-1 p-6 sm:p-8 animate-slide-up space-y-4"
+              style={{ animationDelay: '150ms' }}
             >
-              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Upload className="w-5 h-5 text-[#1173d4]" />
-                Bukti Pembayaran
-              </h3>
-              <p className="text-sm text-[#86868B] mb-6">
-                Setelah melakukan pembayaran, unggah bukti transfer agar pesanan Anda dapat segera
-                diverifikasi panitia.
-              </p>
+              <div>
+                <h3 className="text-lg font-bold text-[#1D1D1F] flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-[#1173d4]" />
+                  Upload Bukti Pembayaran {activeTab === 'qris' ? 'QRIS' : 'Transfer'}
+                </h3>
+                <p className="text-xs text-[#86868B] mt-0.5">
+                  Unggah tangkapan layar / screenshot bukti sukses pembayaran Anda, lalu klik tombol
+                  Kirim Bukti Pembayaran.
+                </p>
+              </div>
 
-              <div className="relative">
+              {/* Upload Box */}
+              <div className="relative border-2 border-dashed border-gray-300 hover:border-[#1173d4] rounded-2xl p-6 transition-colors bg-gray-50 text-center">
                 <input
                   type="file"
                   accept="image/png,image/jpeg"
@@ -290,57 +307,69 @@ export default function PaymentPage() {
                   id="receipt-upload"
                   aria-label="Unggah bukti pembayaran"
                 />
-                <div
-                  className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center transition-colors ${
-                    receiptUrl
-                      ? 'border-[#1173d4]/40 bg-blue-50'
-                      : 'border-gray-300 bg-gray-50 hover:border-[#1173d4] hover:bg-blue-50/50'
-                  }`}
-                >
-                  {receiptUrl ? (
-                    <div className="space-y-4">
-                      <div className="w-32 h-32 overflow-hidden rounded-lg border border-gray-200 mx-auto">
-                        <img src={receiptUrl} alt="Pratinjau bukti transfer" className="w-full h-full object-cover" />
-                      </div>
-                      <p className="text-[#137333] font-medium flex items-center justify-center gap-2">
-                        <Check className="w-4 h-4" /> Bukti berhasil diunggah
-                      </p>
-                      <p className="text-xs text-[#86868B]">Klik untuk mengganti foto</p>
+
+                {selectedFileUrl ? (
+                  <div className="space-y-3">
+                    <div className="w-36 h-36 overflow-hidden rounded-2xl border border-black/10 mx-auto shadow-sm bg-white p-1">
+                      <img
+                        src={selectedFileUrl}
+                        alt="Pratinjau bukti transfer"
+                        className="w-full h-full object-contain rounded-xl"
+                      />
                     </div>
-                  ) : (
-                    <>
-                      <div className="w-16 h-16 bg-white rounded-xl border border-gray-200 flex items-center justify-center mb-4 text-[#86868B]">
-                        <ImageIcon className="w-8 h-8" />
-                      </div>
-                      <p className="font-medium mb-1">Klik atau seret file ke sini</p>
-                      <p className="text-xs text-[#86868B]">Format: JPG, PNG (maks 5 MB)</p>
-                    </>
-                  )}
-                </div>
+                    <p className="text-xs font-semibold text-[#137333] flex items-center justify-center gap-1.5">
+                      <Check className="w-4 h-4" /> Bukti foto siap dikirim
+                    </p>
+                    <p className="text-[11px] text-[#86868B]">Klik di sini untuk mengganti foto</p>
+                  </div>
+                ) : (
+                  <div className="py-4">
+                    <div className="w-12 h-12 bg-white rounded-2xl border border-black/5 flex items-center justify-center mx-auto mb-3 text-[#1173d4] shadow-sm">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                    <p className="text-xs font-bold text-[#1D1D1F] mb-1">
+                      Klik atau seret screenshot bukti pembayaran ke sini
+                    </p>
+                    <p className="text-[11px] text-[#86868B]">Mendukung format JPG, PNG (Maks. 5 MB)</p>
+                  </div>
+                )}
               </div>
 
               {uploadError && (
-                <p className="mt-4 text-sm text-[#FF3B30] flex items-center gap-1.5">
-                  <AlertCircle className="w-4 h-4" />
-                  {uploadError}
-                </p>
-              )}
-
-              {receiptUrl && (
-                <div className="mt-8 flex justify-end">
-                  <button
-                    onClick={() => navigate('/status')}
-                    className="btn-accent flex items-center gap-2"
-                  >
-                    Cek Status Pesanan
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-[#FF3B30] flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{uploadError}</span>
                 </div>
               )}
-            </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={!selectedFileUrl || isSubmitting}
+                className="btn-primary w-full py-3.5 text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-40 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>
+                  {isSubmitting
+                    ? 'Mengirim Bukti Pembayaran...'
+                    : 'Kirim Bukti Pembayaran untuk Diverifikasi'}
+                </span>
+              </button>
+            </form>
           </div>
         )}
       </div>
+
+      {/* Success Notification Toast */}
+      {successToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-green-50 border border-green-200 text-[#137333] p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-fade-in">
+          <CheckCircle2 className="w-6 h-6 text-[#137333] shrink-0" />
+          <div>
+            <p className="font-bold text-sm">Bukti Pembayaran Berhasil Dikirim!</p>
+            <p className="text-xs text-green-700">Admin akan segera memverifikasi pesanan Anda.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

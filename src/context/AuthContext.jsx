@@ -115,17 +115,45 @@ export function AuthProvider({ children }) {
     localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(customers));
   }, [customers]);
 
-  // Load from Supabase on mount
+  // Load from Supabase on mount & Realtime Sync
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     let isMounted = true;
-    fetchCustomersFromSupabase().then((data) => {
+
+    const loadCustomers = async () => {
+      const data = await fetchCustomersFromSupabase();
       if (data && data.length > 0 && isMounted) {
         setCustomers(data);
       }
-    });
+    };
+
+    loadCustomers();
+
+    // Listen on window focus or storage update
+    const handleFocus = () => loadCustomers();
+    window.addEventListener('focus', handleFocus);
+
+    // Setup Realtime subscription
+    let channel;
+    if (supabase) {
+      channel = supabase
+        .channel('karcix-customers-realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'customers' },
+          () => {
+            loadCustomers();
+          }
+        )
+        .subscribe();
+    }
+
     return () => {
       isMounted = false;
+      window.removeEventListener('focus', handleFocus);
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
@@ -149,12 +177,16 @@ export function AuthProvider({ children }) {
       throw new Error('Alamat email sudah terdaftar. Silakan gunakan email lain atau masuk ke akun Anda.');
     }
 
+    if (!password || password.length < 12) {
+      throw new Error('Kata sandi harus terdiri dari minimal 12 karakter untuk keamanan.');
+    }
+
     const newCustomer = {
       id: `CUST-${Date.now().toString().slice(-6)}`,
       name: name.trim(),
       email: cleanEmail,
       whatsapp: whatsapp.trim(),
-      password: password || 'password123',
+      password,
       status: 'active',
       created_at: new Date().toISOString(),
     };
@@ -162,9 +194,11 @@ export function AuthProvider({ children }) {
     setCustomers((prev) => [newCustomer, ...prev]);
 
     if (isSupabaseConfigured) {
-      createCustomerInSupabase(newCustomer).catch((err) =>
-        console.error('Supabase customer create error:', err)
-      );
+      try {
+        await createCustomerInSupabase(newCustomer);
+      } catch (err) {
+        console.error('Supabase customer create error:', err);
+      }
     }
 
     const userSession = {

@@ -4,7 +4,7 @@ import {
   Image as ImageIcon, AlertTriangle, Inbox, X, Ticket, RotateCcw,
   Users, UserPlus, KeyRound, Ban, Search, Edit3, Trash2, Phone, Mail,
 } from 'lucide-react';
-import { useAppState, useAppDispatch, clearState } from '../../store/appStore';
+import { useAppState, useAppDispatch } from '../../store/appStore';
 import { useAuth } from '../../context/AuthContext';
 import {
   formatRupiah,
@@ -183,13 +183,6 @@ export default function AdminDashboard() {
     showToast('Perubahan event dan kuota berhasil disimpan.');
   };
 
-  const handleResetData = () => {
-    if (!window.confirm('Kembalikan semua data pesanan ke kondisi awal demo?')) return;
-    clearState();
-    dispatch({ type: 'RESET' });
-    showToast('Data demo berhasil di-reset.');
-  };
-
   // Customer Management Handlers
   const handleAddCustomerSubmit = async (e) => {
     e.preventDefault();
@@ -257,13 +250,6 @@ export default function AdminDashboard() {
               Kelola pesanan, verifikasi pembayaran, data pengguna, dan event Karcix
             </p>
           </div>
-          <button
-            onClick={handleResetData}
-            className="self-start sm:self-auto flex items-center gap-2 px-4 py-2 bg-white text-xs font-semibold text-[#86868B] hover:text-[#1D1D1F] border border-black/5 rounded-full shadow-sm hover:shadow transition-all"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset Data Demo
-          </button>
         </div>
 
         {/* Tabs */}

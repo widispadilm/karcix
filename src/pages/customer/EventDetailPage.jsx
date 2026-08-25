@@ -1,15 +1,27 @@
 import { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router';
-import { ArrowLeft, ArrowRight, Calendar, MapPin, Clock, Users, Music } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  MapPin,
+  Clock,
+  Users,
+  Music,
+  ChevronLeft,
+  ChevronRight,
+  ImageIcon,
+} from 'lucide-react';
 import { useAppState } from '../../store/appStore';
 import { formatRupiah, formatDate, formatTime, CATALOG_EVENTS } from '../../data/mockData';
-import { poster } from '../../assets/posters';
+import { poster, eventGallery } from '../../assets/posters';
 
 export default function EventDetailPage() {
   const { id } = useParams();
   const { event } = useAppState();
   const navigate = useNavigate();
   const [selectedTier, setSelectedTier] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   if (!event) {
     return <div className="min-h-screen flex items-center justify-center">Memuat...</div>;
@@ -29,7 +41,9 @@ export default function EventDetailPage() {
             : 'Event yang kamu cari tidak tersedia.'}
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Link to="/" className="btn-primary">Kembali ke Beranda</Link>
+          <Link to="/" className="btn-primary">
+            Kembali ke Beranda
+          </Link>
           <Link to={`/event/${event.id}`} className="btn-outline">
             Lihat {event.title}
           </Link>
@@ -38,12 +52,24 @@ export default function EventDetailPage() {
     );
   }
 
+  const gallery = eventGallery(event.id, event.title);
+  const currentImage = gallery[currentImageIndex] || gallery[0];
+
+  const handlePrevImage = (e) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === 0 ? gallery.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = (e) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === gallery.length - 1 ? 0 : prev + 1));
+  };
+
   const availableTiers = event.tiers?.filter((t) => t.quota - t.sold > 0) || [];
   const minPrice = availableTiers.length
     ? Math.min(...availableTiers.map((t) => t.price))
     : Math.min(...(event.tiers?.map((t) => t.price) || [0]));
 
-  // Badge "Terlaris" mengikuti data, bukan posisi tier di dalam array.
   const bestSellerId = event.tiers?.reduce(
     (best, t) => (!best || t.sold / t.quota > best.sold / best.quota ? t : best),
     null
@@ -53,34 +79,90 @@ export default function EventDetailPage() {
 
   return (
     <div className="antialiased overflow-hidden w-full h-screen flex flex-col md:flex-row bg-[#F5F5F7]">
+      {/* Tombol kembali floating */}
       <div className="fixed top-0 left-0 z-50 p-4 md:p-6 pointer-events-none w-full">
         <button
           onClick={() => navigate('/')}
           aria-label="Kembali"
-          className="pointer-events-auto bg-white/50 backdrop-blur-md border border-black/5 hover:bg-white/80 transition-colors w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
+          className="pointer-events-auto bg-white/70 backdrop-blur-md border border-black/5 hover:bg-white transition-colors w-10 h-10 rounded-full flex items-center justify-center shadow-md cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5 text-[#1D1D1F]" />
         </button>
       </div>
 
-      {/* Poster */}
-      <div className="w-full h-[400px] md:w-[40vw] md:h-screen flex-shrink-0 relative">
+      {/* Multi-Image Carousel Section */}
+      <div className="w-full h-[400px] md:w-[42vw] md:h-screen flex-shrink-0 relative overflow-hidden bg-black group">
+        {/* Background Image Slide */}
         <div
-          className="w-full h-full bg-cover bg-center bg-no-repeat absolute inset-0"
-          style={{ backgroundImage: `url("${poster(event.id, { label: event.title })}")` }}
+          key={currentImage.id}
+          className="w-full h-full bg-cover bg-center bg-no-repeat absolute inset-0 transition-all duration-500 ease-out transform scale-100"
+          style={{ backgroundImage: `url("${currentImage.url}")` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 md:hidden" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
+
+        {/* Counter Badge at Top Right */}
+        <div className="absolute top-4 right-4 z-20 px-3 py-1 bg-black/50 backdrop-blur-md text-white rounded-full text-xs font-semibold flex items-center gap-1.5 border border-white/15">
+          <ImageIcon className="w-3.5 h-3.5" />
+          <span>
+            {currentImageIndex + 1} / {gallery.length}
+          </span>
+        </div>
+
+        {/* Image Title & Caption at Bottom */}
+        <div className="absolute bottom-10 left-6 right-6 z-20 text-white">
+          <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-600/80 backdrop-blur-sm mb-1">
+            {currentImage.title}
+          </span>
+          <p className="text-xs text-white/80 font-medium">{currentImage.caption}</p>
+        </div>
+
+        {/* Left Arrow Button */}
+        <button
+          onClick={handlePrevImage}
+          aria-label="Gambar Sebelumnya"
+          className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md flex items-center justify-center border border-white/20 transition-all opacity-80 group-hover:opacity-100 hover:scale-105 cursor-pointer"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+
+        {/* Right Arrow Button */}
+        <button
+          onClick={handleNextImage}
+          aria-label="Gambar Berikutnya"
+          className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md flex items-center justify-center border border-white/20 transition-all opacity-80 group-hover:opacity-100 hover:scale-105 cursor-pointer"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+
+        {/* Bottom Dot Indicators */}
+        <div className="absolute bottom-3 left-0 right-0 z-30 flex items-center justify-center gap-2">
+          {gallery.map((img, idx) => (
+            <button
+              key={img.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentImageIndex(idx);
+              }}
+              aria-label={`Slide ${idx + 1}`}
+              className={`transition-all duration-300 rounded-full cursor-pointer ${
+                currentImageIndex === idx
+                  ? 'w-6 h-2 bg-white shadow-md'
+                  : 'w-2 h-2 bg-white/40 hover:bg-white/70'
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Konten */}
-      <div className="w-full md:w-[60vw] md:h-screen overflow-y-auto relative bg-white rounded-t-3xl md:rounded-none -mt-6 md:mt-0 z-10 no-scrollbar flex-1">
+      {/* Konten Detail Event */}
+      <div className="w-full md:w-[58vw] md:h-screen overflow-y-auto relative bg-white rounded-t-3xl md:rounded-none -mt-6 md:mt-0 z-10 no-scrollbar flex-1">
         <div className="max-w-[800px] mx-auto pb-32">
           <div className="p-6 md:p-12 md:pt-24 flex flex-col gap-4 animate-slide-up">
-            <h1 className="text-4xl md:text-[56px] font-black leading-[1.1] tracking-[-0.02em] text-[#1D1D1F]">
+            <h1 className="text-4xl md:text-[52px] font-black leading-[1.1] tracking-[-0.02em] text-[#1D1D1F]">
               {event.title}
             </h1>
-            <p className="text-[17px] text-[#86868B] font-medium mt-2 flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
+            <p className="text-[16px] text-[#86868B] font-medium flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-[#1173d4]" />
               {event.location} • {formatDate(event.date)}
             </p>
           </div>
@@ -100,88 +182,35 @@ export default function EventDetailPage() {
                 style={{ animationDelay: `${i * 80}ms` }}
               >
                 <item.icon className="w-5 h-5 text-[#1173d4]" />
-                <p className="text-xs text-[#86868B] font-medium uppercase tracking-wider">
-                  {item.label}
-                </p>
-                <p className="text-sm font-semibold text-[#1D1D1F]">{item.value}</p>
+                <div>
+                  <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">
+                    {item.label}
+                  </span>
+                  <p className="text-[15px] font-bold text-[#1D1D1F] mt-0.5">{item.value}</p>
+                </div>
               </div>
             ))}
           </div>
 
-          <hr className="border-t border-black/5 mx-6 md:mx-12" />
-
-          {/* Tier tiket */}
-          <div className="p-6 md:p-12 flex flex-col gap-6">
-            <h2 className="text-xl font-bold text-[#1D1D1F] tracking-tight">Pilih Paket</h2>
-            <div className="flex flex-col gap-3">
-              {event.tiers?.map((tier) => {
-                const remaining = tier.quota - tier.sold;
-                const isSoldOut = remaining <= 0;
-
-                return (
-                  <button
-                    key={tier.id}
-                    type="button"
-                    disabled={isSoldOut}
-                    onClick={() => setSelectedTier(tier.id)}
-                    className={`group flex items-center justify-between text-left p-5 rounded-2xl bg-white border transition-all relative overflow-hidden ${
-                      isSoldOut
-                        ? 'opacity-60 cursor-not-allowed'
-                        : activeTierId === tier.id
-                          ? 'border-[#1173d4] bg-blue-50/30 shadow-sm'
-                          : 'border-black/5 hover:border-[#1173d4]/30 hover:bg-blue-50/20'
-                    }`}
-                  >
-                    {tier.id === bestSellerId && !isSoldOut && (
-                      <div className="absolute top-0 right-0 bg-[#1173d4] text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-bl-lg">
-                        Terlaris
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1">
-                      <h3
-                        className={`text-lg font-bold transition-colors ${
-                          isSoldOut
-                            ? 'text-[#86868B] line-through'
-                            : 'text-[#1D1D1F] group-hover:text-[#1173d4]'
-                        }`}
-                      >
-                        {tier.name}
-                      </h3>
-                      <p className="text-[15px] text-[#86868B]">{tier.description}</p>
-                      {!isSoldOut && (
-                        <p className="text-xs text-[#86868B] mt-1">Tersisa {remaining} tiket</p>
-                      )}
-                    </div>
-                    <div className="text-right flex flex-col items-end">
-                      {isSoldOut ? (
-                        <span className="text-[13px] font-medium tracking-wide uppercase text-[#86868B] bg-[#E5E5EA]/50 px-2.5 py-1 rounded-md">
-                          Habis
-                        </span>
-                      ) : (
-                        <>
-                          <span className="text-lg font-semibold text-[#1D1D1F]">
-                            {formatRupiah(tier.price)}
-                          </span>
-                          <span className="text-xs text-[#86868B]">per tiket</span>
-                        </>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+          <div className="px-6 md:px-12 space-y-3">
+            <h2 className="text-xl font-bold text-[#1D1D1F]">Tentang Event</h2>
+            <p className="text-[#555558] text-[15px] leading-relaxed whitespace-pre-line">
+              {event.description}
+            </p>
           </div>
 
-          {event.lineup?.length > 0 && (
-            <div className="p-6 md:p-12 pt-0 flex flex-col gap-4">
-              <h2 className="text-lg font-bold text-[#1D1D1F] tracking-tight">Pengisi Acara</h2>
-              <div className="flex flex-wrap gap-2">
+          {event.lineup && event.lineup.length > 0 && (
+            <div className="p-6 md:p-12 space-y-3">
+              <h2 className="text-xl font-bold text-[#1D1D1F] flex items-center gap-2">
+                <Music className="w-5 h-5 text-[#1173d4]" />
+                Guest Star &amp; Lineup
+              </h2>
+              <div className="flex flex-wrap gap-2 pt-1">
                 {event.lineup.map((artist) => (
                   <span
                     key={artist}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#F5F5F7] border border-black/5 text-sm font-medium text-[#1D1D1F]"
+                    className="px-4 py-2 bg-[#F5F5F7] border border-black/5 rounded-full text-sm font-semibold text-[#1D1D1F]"
                   >
-                    <Music className="w-3.5 h-3.5 text-[#1173d4]" />
                     {artist}
                   </span>
                 ))}
@@ -189,29 +218,78 @@ export default function EventDetailPage() {
             </div>
           )}
 
-          <div className="p-6 md:p-12 pt-0 flex flex-col gap-4">
-            <h2 className="text-lg font-bold text-[#1D1D1F] tracking-tight">Tentang Acara</h2>
-            <p className="text-[15px] text-[#555558] leading-relaxed whitespace-pre-line">
-              {event.description}
-            </p>
+          {/* Pemilihan Tier Tiket */}
+          <div className="p-6 md:p-12 space-y-4">
+            <h2 className="text-xl font-bold text-[#1D1D1F]">Pilih Paket Tiket</h2>
+
+            <div className="space-y-3">
+              {event.tiers?.map((tier) => {
+                const remaining = tier.quota - tier.sold;
+                const isSoldOut = remaining <= 0;
+                const isSelected = activeTierId === tier.id;
+                const isBestSeller = tier.id === bestSellerId && !isSoldOut;
+
+                return (
+                  <div
+                    key={tier.id}
+                    onClick={() => !isSoldOut && setSelectedTier(tier.id)}
+                    className={`relative p-5 rounded-2xl border transition-all cursor-pointer ${
+                      isSoldOut
+                        ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-200'
+                        : isSelected
+                        ? 'border-[#1173d4] bg-blue-50/30 shadow-md ring-2 ring-[#1173d4]/20'
+                        : 'border-black/10 bg-white hover:border-black/20 hover:shadow-sm'
+                    }`}
+                  >
+                    {isBestSeller && (
+                      <span className="absolute -top-2.5 right-4 bg-[#1173d4] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                        Terlaris
+                      </span>
+                    )}
+
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold text-[#1D1D1F] text-base">{tier.name}</h3>
+                        <p className="text-xs text-[#86868B] mt-1">{tier.description}</p>
+                        <span
+                          className={`inline-block text-xs font-medium mt-2 ${
+                            isSoldOut ? 'text-[#FF3B30]' : 'text-[#86868B]'
+                          }`}
+                        >
+                          {isSoldOut ? 'Habis Terjual' : `Tersisa ${remaining} tiket`}
+                        </span>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-lg font-bold text-[#1D1D1F]">
+                          {formatRupiah(tier.price)}
+                        </span>
+                        <span className="block text-[11px] text-[#86868B]">per tiket</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Action bar */}
-        <div className="fixed bottom-0 right-0 w-full md:w-[60vw] h-20 glass-panel flex items-center justify-between px-6 md:px-12 z-20">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-[#86868B]">Mulai dari</span>
-            <span className="text-xl font-bold text-[#1D1D1F] leading-none">
-              {formatRupiah(minPrice)}
-            </span>
+        {/* Sticky Bottom Bar */}
+        <div className="fixed bottom-0 right-0 w-full md:w-[58vw] bg-white/90 backdrop-blur-xl border-t border-black/5 p-4 px-6 md:px-12 flex items-center justify-between z-40">
+          <div>
+            <span className="text-xs text-[#86868B] block">Harga mulai dari</span>
+            <span className="text-xl font-bold text-[#1D1D1F]">{formatRupiah(minPrice)}</span>
           </div>
+
           <button
-            disabled={!activeTierId}
-            onClick={() => navigate(`/checkout/${activeTierId}`)}
-            className="bg-[#1173d4] hover:bg-[#0f60b3] text-white px-8 py-3.5 rounded-xl font-semibold text-[15px] transition-colors shadow-sm active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+            onClick={() => {
+              if (activeTierId) navigate(`/checkout/${activeTierId}`);
+            }}
+            disabled={!activeTierId || availableTiers.length === 0}
+            className="btn-primary py-3 px-8 flex items-center gap-2 text-sm font-semibold shadow-lg shadow-blue-500/20 disabled:opacity-40 cursor-pointer"
           >
-            {activeTierId ? 'Pilih Tiket' : 'Tiket Habis'}
-            {activeTierId && <ArrowRight className="w-4 h-4" />}
+            <span>Pilih Tiket</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>

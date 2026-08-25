@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   AlertCircle,
   ShieldCheck,
+  Check,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -29,6 +31,9 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const isLengthValid = password.length >= 12;
+  const isMatchValid = confirmPassword.length > 0 && password === confirmPassword;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,13 +54,13 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!password || password.length < 6) {
-      setError('Kata sandi harus minimal 6 karakter.');
+    if (!isLengthValid) {
+      setError('Kata sandi harus terdiri dari minimal 12 karakter untuk keamanan.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Konfirmasi kata sandi tidak cocok.');
+      setError('Konfirmasi kata sandi tidak cocok. Pastikan kedua kolom sandi sama persis.');
       return;
     }
 
@@ -68,7 +73,7 @@ export default function RegisterPage() {
         password,
       });
 
-      setSuccessMsg('Akun berhasil dibuat! Mengalihkan...');
+      setSuccessMsg('Akun berhasil dibuat! Mengalihkan ke profil...');
       setTimeout(() => {
         navigate('/profile');
       }, 700);
@@ -115,7 +120,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Form with 2-column grid on desktop */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -195,7 +200,7 @@ export default function RegisterPage() {
                       setPassword(e.target.value);
                       setError('');
                     }}
-                    placeholder="Min. 6 digit"
+                    placeholder="Min. 12 karakter"
                     className="input-field pl-9 pr-8 !pl-9 py-2 text-xs sm:text-sm"
                   />
                   <button
@@ -222,17 +227,56 @@ export default function RegisterPage() {
                       setConfirmPassword(e.target.value);
                       setError('');
                     }}
-                    placeholder="Ulangi sandi"
+                    placeholder="Ulangi kata sandi"
                     className="input-field pl-9 !pl-9 py-2 text-xs sm:text-sm"
                   />
                 </div>
               </div>
             </div>
 
+            {/* Live Security Checklist Indicators */}
+            <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-100 space-y-1.5 text-[11px]">
+              <div className="flex items-center gap-1.5">
+                {isLengthValid ? (
+                  <Check className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
+                ) : (
+                  <div className="w-3.5 h-3.5 rounded-full border border-gray-300 shrink-0" />
+                )}
+                <span className={isLengthValid ? 'text-[#22c55e] font-semibold' : 'text-[#86868B]'}>
+                  Minimal 12 karakter ({password.length}/12)
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {isMatchValid ? (
+                  <Check className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
+                ) : confirmPassword.length > 0 ? (
+                  <X className="w-3.5 h-3.5 text-[#FF3B30] shrink-0" />
+                ) : (
+                  <div className="w-3.5 h-3.5 rounded-full border border-gray-300 shrink-0" />
+                )}
+                <span
+                  className={
+                    isMatchValid
+                      ? 'text-[#22c55e] font-semibold'
+                      : confirmPassword.length > 0
+                      ? 'text-[#FF3B30] font-medium'
+                      : 'text-[#86868B]'
+                  }
+                >
+                  {isMatchValid
+                    ? 'Kata sandi cocok ✓'
+                    : confirmPassword.length > 0
+                    ? 'Konfirmasi sandi belum cocok'
+                    : 'Konfirmasi sandi harus sama'}
+                </span>
+              </div>
+            </div>
+
             <button
               type="submit"
-              disabled={loading}
-              className="btn-primary w-full mt-2 py-2.5 font-semibold text-sm disabled:opacity-50"
+              disabled={loading || !isLengthValid || !isMatchValid}
+              className="btn-primary w-full mt-2 py-2.5 font-semibold text-sm disabled:opacity-50 cursor-pointer"
             >
               {loading ? 'Memproses...' : 'Daftar Sekarang'}
             </button>
