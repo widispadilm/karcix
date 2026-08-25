@@ -97,6 +97,15 @@ export default function GateScannerPage() {
 
   const scannerRef = useRef(null);
   const isProcessingScanRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const processTicketCode = useCallback(
     (code) => {
@@ -131,8 +140,10 @@ export default function GateScannerPage() {
         if (navigator.vibrate) navigator.vibrate([300]);
       }
 
-      setScanResult(result);
-      setRecentScans((prev) => [result, ...prev.slice(0, 4)]);
+      if (isMountedRef.current) {
+        setScanResult(result);
+        setRecentScans((prev) => [result, ...prev.slice(0, 4)]);
+      }
     },
     [orders, dispatch, soundEnabled]
   );
@@ -143,25 +154,56 @@ export default function GateScannerPage() {
     if (scanResult) {
       isProcessingScanRef.current = true;
       timer = setTimeout(() => {
-        setScanResult(null);
+        if (isMountedRef.current) {
+          setScanResult(null);
+        }
         isProcessingScanRef.current = false;
       }, 3000);
     }
     return () => clearTimeout(timer);
   }, [scanResult]);
 
+  // Safely stop scanner — swallow removeChild errors from html5-qrcode cleanup
+  const safeStopScanner = useCallback(async () => {
+    const scanner = scannerRef.current;
+    if (!scanner) return;
+    scannerRef.current = null;
+    try {
+      const state = scanner.getState?.();
+      // Html5QrcodeState: SCANNING = 2, PAUSED = 3
+      if (state === 2 || state === 3) {
+        await scanner.stop();
+      }
+    } catch (err) {
+      // Swallow "removeChild" DOM errors caused by React unmounting
+      // the container before html5-qrcode finishes cleanup
+      if (!(err instanceof DOMException)) {
+        console.warn('Scanner stop warning:', err?.message);
+      }
+    }
+    try {
+      scanner.clear?.();
+    } catch {
+      // Ignore
+    }
+  }, []);
+
   // Start Camera
   const startCamera = useCallback(async () => {
+    if (!isMountedRef.current) return;
     setCameraError(null);
-    try {
-      if (scannerRef.current) {
-        try {
-          await scannerRef.current.stop();
-        } catch {
-          // Ignore
-        }
-      }
 
+    // Stop any existing scanner first
+    await safeStopScanner();
+
+    // Bail if unmounted during the async gap
+    if (!isMountedRef.current) return;
+
+    // Verify container exists
+    const container = document.getElementById('qr-reader-container');
+    if (!container) return;
+
+    try {
       const html5QrCode = new Html5Qrcode('qr-reader-container');
       scannerRef.current = html5QrCode;
 
@@ -186,8 +228,11 @@ export default function GateScannerPage() {
         }
       );
 
-      setCameraActive(true);
+      if (isMountedRef.current) {
+        setCameraActive(true);
+      }
     } catch (err) {
+      if (!isMountedRef.current) return;
       console.error('Camera start error:', err);
       setCameraActive(false);
       setCameraError(
@@ -196,28 +241,25 @@ export default function GateScannerPage() {
           : 'Tidak dapat mengakses kamera perangkat Anda.'
       );
     }
-  }, [facingMode, processTicketCode]);
+  }, [facingMode, processTicketCode, safeStopScanner]);
 
-  // Stop Camera
+  // Stop Camera (public)
   const stopCamera = useCallback(async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-      } catch (err) {
-        console.error('Error stopping scanner:', err);
-      }
-      scannerRef.current = null;
+    await safeStopScanner();
+    if (isMountedRef.current) {
+      setCameraActive(false);
     }
-    setCameraActive(false);
-  }, []);
+  }, [safeStopScanner]);
 
   // Initialize camera on mount, cleanup on unmount
   useEffect(() => {
     startCamera();
     return () => {
-      stopCamera();
+      // Synchronously null out ref so no further state updates happen
+      isMountedRef.current = false;
+      safeStopScanner();
     };
-  }, [startCamera, stopCamera]);
+  }, [startCamera, safeStopScanner]);
 
   const toggleCameraFacing = () => {
     stopCamera().then(() => {
