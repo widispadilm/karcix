@@ -21,6 +21,16 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuc
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPwd, setShowRegPwd] = useState(false);
 
+  // Keyboard Escape listener
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleLoginSubmit = async (e) => {
@@ -98,13 +108,19 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuc
           <button
             type="button"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               onClose();
             }}
-            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer z-30"
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
+            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition-colors cursor-pointer shrink-0 z-50"
             aria-label="Tutup"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 pointer-events-none" />
           </button>
         </div>
 

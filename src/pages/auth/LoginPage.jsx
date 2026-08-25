@@ -12,6 +12,7 @@ import {
   Sparkles,
   Shield,
   UserPlus,
+  X,
 } from 'lucide-react';
 import { useAuth, DEMO_ACCOUNTS } from '../../context/AuthContext';
 
@@ -87,7 +88,15 @@ export default function LoginPage() {
         </div>
 
         {/* Card Box */}
-        <div className="bg-white py-6 px-5 sm:py-7 sm:px-8 shadow-sm border border-black/5 rounded-2xl sm:rounded-3xl animate-scale-in">
+        <div className="bg-white py-6 px-5 sm:py-7 sm:px-8 shadow-sm border border-black/5 rounded-2xl sm:rounded-3xl animate-scale-in relative">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition-colors cursor-pointer z-30"
+            aria-label="Tutup"
+          >
+            <X className="w-5 h-5" />
+          </button>
           {/* Feedback messages */}
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-[#FF3B30] rounded-xl text-xs sm:text-sm flex items-center gap-2 animate-fade-in">
