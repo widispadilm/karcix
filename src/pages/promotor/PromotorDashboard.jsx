@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Ticket, Wallet, Package, Download, Search, Users, BarChart3, UserCheck } from 'lucide-react';
+import { Ticket, Wallet, Package, Download, Search, Users, BarChart3, UserCheck, Layers } from 'lucide-react';
 import { useAppState } from '../../store/appStore';
-import { formatRupiah, ORDER_STATUS } from '../../data/mockData';
+import { formatRupiah, ORDER_STATUS, INITIAL_EVENTS } from '../../data/mockData';
 import StatusBadge from '../../components/StatusBadge';
 
 /** Bungkus nilai untuk CSV: gandakan tanda kutip dan hindari formula injection. */
@@ -12,40 +12,64 @@ function csvCell(value) {
 }
 
 export default function PromotorDashboard() {
-  const { event, orders } = useAppState();
+  const { events, event, orders } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEventId, setSelectedEventId] = useState('all');
+
+  const allEvents = useMemo(() => {
+    return events && events.length > 0 ? events : (event ? [event] : INITIAL_EVENTS);
+  }, [events, event]);
+
+  const activeEvent = useMemo(() => {
+    if (selectedEventId === 'all') return null;
+    return allEvents.find((e) => e.id === selectedEventId) || allEvents[0];
+  }, [allEvents, selectedEventId]);
+
+  const relevantOrders = useMemo(() => {
+    if (selectedEventId === 'all') return orders;
+    return orders.filter((o) => {
+      if (o.eventId) return o.eventId === selectedEventId;
+      // Match by tier
+      return activeEvent?.tiers?.some((t) => t.id === o.tierId);
+    });
+  }, [orders, selectedEventId, activeEvent]);
 
   const paidOrders = useMemo(
-    () => orders.filter((o) => o.status === ORDER_STATUS.PAID),
-    [orders]
+    () => relevantOrders.filter((o) => o.status === ORDER_STATUS.PAID),
+    [relevantOrders]
   );
 
   const ticketsSold = paidOrders.reduce((sum, order) => sum + order.qty, 0);
   const grossRevenue = paidOrders.reduce(
-    (sum, order) => sum + order.unitPrice * order.qty,
+    (sum, order) => sum + (order.unitPrice || 0) * (order.qty || 1),
     0
   );
   const checkedIn = paidOrders.filter((o) => o.checkedIn).length;
 
-  const remainingQuota = useMemo(
-    () => event.tiers.reduce((sum, tier) => sum + (tier.quota - tier.sold), 0),
-    [event.tiers]
-  );
+  const remainingQuota = useMemo(() => {
+    if (activeEvent) {
+      return activeEvent.tiers?.reduce((sum, tier) => sum + (tier.quota - tier.sold), 0) || 0;
+    }
+    return allEvents.reduce((totalSum, evt) => {
+      return totalSum + (evt.tiers?.reduce((sum, tier) => sum + (tier.quota - tier.sold), 0) || 0);
+    }, 0);
+  }, [activeEvent, allEvents]);
 
   const filteredOrders = useMemo(() => {
     if (!searchTerm) return paidOrders;
     const lower = searchTerm.toLowerCase();
     return paidOrders.filter(
       (o) =>
-        o.buyerName.toLowerCase().includes(lower) || o.email.toLowerCase().includes(lower)
+        o.buyerName?.toLowerCase().includes(lower) || o.email?.toLowerCase().includes(lower)
     );
   }, [paidOrders, searchTerm]);
 
   const handleExportCSV = () => {
-    const headers = ['Order ID', 'Nama', 'Email', 'WhatsApp', 'Tier', 'Qty', 'Total', 'Status', 'Check-in'];
+    const headers = ['Order ID', 'Event', 'Nama', 'Email', 'WhatsApp', 'Tier', 'Qty', 'Total', 'Status', 'Check-in'];
     const rows = paidOrders.map((o) =>
       [
         o.id,
+        o.eventTitle || activeEvent?.title || 'PENSI FEST 2026',
         o.buyerName,
         o.email,
         o.whatsapp,
@@ -59,18 +83,17 @@ export default function PromotorDashboard() {
         .join(',')
     );
 
-    // BOM supaya Excel membaca karakter non-ASCII dengan benar.
-    const blob = new Blob(['﻿' + [headers.map(csvCell).join(','), ...rows].join('\n')], {
+    const blob = new Blob(['\uFEFF' + [headers.map(csvCell).join(','), ...rows].join('\n')], {
       type: 'text/csv;charset=utf-8;',
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'karcix-buyers-export.csv';
+    link.download = `karcix-buyers-${selectedEventId === 'all' ? 'all' : activeEvent?.id}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url); // versi lama membiarkan object URL menggantung
+    URL.revokeObjectURL(url);
   };
 
   const stats = [
@@ -85,12 +108,34 @@ export default function PromotorDashboard() {
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold mb-1">Promotor Dashboard</h1>
-          <p className="text-[#86868B]">Overview &amp; analytics untuk {event.title}</p>
+          <p className="text-[#86868B]">
+            Overview &amp; analytics penjualan tiket {activeEvent ? activeEvent.title : 'Semua Event'}
+          </p>
         </div>
-        <button onClick={handleExportCSV} className="btn-primary inline-flex items-center gap-2 self-start">
-          <Download size={18} />
-          Export CSV
-        </button>
+        
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          {/* Event Filter Dropdown */}
+          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-black/5 shadow-sm text-xs font-semibold">
+            <Layers className="w-4 h-4 text-[#1173d4]" />
+            <select
+              value={selectedEventId}
+              onChange={(e) => setSelectedEventId(e.target.value)}
+              className="bg-transparent focus:outline-none cursor-pointer"
+            >
+              <option value="all">Semua Event ({allEvents.length})</option>
+              {allEvents.map((evt) => (
+                <option key={evt.id} value={evt.id}>
+                  {evt.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button onClick={handleExportCSV} className="btn-primary inline-flex items-center gap-2 text-xs py-2 px-3.5 shadow-sm cursor-pointer">
+            <Download size={16} />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Kartu ringkasan */}
@@ -116,18 +161,18 @@ export default function PromotorDashboard() {
       <div className="glass-card z-depth-1 p-6 mb-8 animate-slide-up" style={{ animationDelay: '300ms' }}>
         <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
           <BarChart3 size={20} className="text-[#1173d4]" />
-          Performa Tiket per Kategori
+          Performa Tiket per Kategori {activeEvent ? `(${activeEvent.title})` : ''}
         </h2>
         <div className="space-y-6">
-          {event.tiers?.map((tier) => {
+          {(activeEvent ? activeEvent.tiers : allEvents.flatMap((e) => e.tiers || []))?.map((tier, idx) => {
             const percentage = tier.quota > 0 ? (tier.sold / tier.quota) * 100 : 0;
             return (
-              <div key={tier.id}>
+              <div key={tier.id || idx}>
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center gap-2">
                     <span
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: tier.color }}
+                      style={{ backgroundColor: tier.color || '#3b82f6' }}
                     />
                     <span className="font-medium">{tier.name}</span>
                   </div>
@@ -140,10 +185,13 @@ export default function PromotorDashboard() {
                     </span>
                   </div>
                 </div>
-                <div className="h-2 bg-gray-200 w-full overflow-hidden rounded-full">
+                <div className="w-full bg-[#E5E5EA] h-3 rounded-full overflow-hidden">
                   <div
-                    className="h-full transition-all duration-1000 ease-out"
-                    style={{ width: `${percentage}%`, backgroundColor: tier.color }}
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, percentage)}%`,
+                      backgroundColor: tier.color || '#1173d4',
+                    }}
                   />
                 </div>
               </div>
@@ -152,63 +200,72 @@ export default function PromotorDashboard() {
         </div>
       </div>
 
-      {/* Data pembeli */}
+      {/* Daftar Pembeli */}
       <div className="glass-card z-depth-1 p-6 animate-slide-up" style={{ animationDelay: '400ms' }}>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Users size={20} className="text-[#1173d4]" />
-            Data Pembeli
+            Daftar Pembeli Tiket Lunas ({filteredOrders.length})
           </h2>
-          <div className="relative w-full md:w-64">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868B]" />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868B]" size={16} />
             <input
-              type="search"
+              type="text"
               placeholder="Cari nama atau email..."
-              aria-label="Cari pembeli"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field pl-10 py-2 text-sm"
+              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1173d4] w-full sm:w-64 bg-white"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="data-table w-full text-left">
-            <thead>
+          <table className="w-full text-left text-sm">
+            <thead className="bg-[#F5F5F7] text-[#86868B] uppercase text-[11px] font-semibold border-b border-black/5">
               <tr>
-                <th>Nama</th>
-                <th>Email</th>
-                <th>WhatsApp</th>
-                <th>Tier</th>
-                <th>Qty</th>
-                <th>Status</th>
+                <th className="py-3 px-4">Order ID</th>
+                <th className="py-3 px-4">Pembeli</th>
+                <th className="py-3 px-4">Kategori</th>
+                <th className="py-3 px-4">Qty</th>
+                <th className="py-3 px-4">Total</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Check-In</th>
               </tr>
             </thead>
-            <tbody>
-              {filteredOrders.length > 0 ? (
-                filteredOrders.map((order) => (
-                  <tr key={order.id}>
-                    <td className="font-medium">{order.buyerName}</td>
-                    <td className="text-[#86868B] text-sm">{order.email}</td>
-                    <td className="text-[#86868B] text-sm">{order.whatsapp}</td>
-                    <td className="text-[#86868B] text-sm">{order.tierName}</td>
-                    <td className="text-[#86868B]">{order.qty}</td>
-                    <td>
-                      <StatusBadge
-                        status={order.checkedIn ? 'checked-in' : order.status}
-                        label={order.checkedIn ? 'Checked In' : undefined}
-                      />
+            <tbody className="divide-y divide-black/5">
+              {filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-[#86868B]">
+                    Tidak ada data pembeli yang cocok
+                  </td>
+                </tr>
+              ) : (
+                filteredOrders.map((o) => (
+                  <tr key={o.id} className="hover:bg-black/[0.02]">
+                    <td className="py-3 px-4 font-mono text-xs font-bold text-[#1173d4]">{o.id}</td>
+                    <td className="py-3 px-4">
+                      <p className="font-semibold text-[#1D1D1F]">{o.buyerName}</p>
+                      <p className="text-xs text-[#86868B]">{o.email}</p>
+                    </td>
+                    <td className="py-3 px-4 font-medium">{o.tierName}</td>
+                    <td className="py-3 px-4 tabular-nums">{o.qty}</td>
+                    <td className="py-3 px-4 font-bold">{formatRupiah(o.totalAmount)}</td>
+                    <td className="py-3 px-4">
+                      <StatusBadge status={o.status} />
+                    </td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          o.checkedIn
+                            ? 'bg-green-100 text-[#137333]'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
+                        {o.checkedIn ? 'Sudah' : 'Belum'}
+                      </span>
                     </td>
                   </tr>
                 ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-[#86868B]">
-                    {paidOrders.length === 0
-                      ? 'Belum ada pesanan yang lunas.'
-                      : 'Tidak ada data pembeli yang sesuai pencarian.'}
-                  </td>
-                </tr>
               )}
             </tbody>
           </table>

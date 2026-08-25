@@ -13,46 +13,32 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import { useAppState } from '../../store/appStore';
-import { formatRupiah, formatDate, formatTime, CATALOG_EVENTS } from '../../data/mockData';
+import { formatRupiah, formatDate, formatTime, INITIAL_EVENTS } from '../../data/mockData';
 import { poster, eventGallery } from '../../assets/posters';
 
 export default function EventDetailPage() {
   const { id } = useParams();
-  const { event } = useAppState();
+  const { events, event } = useAppState();
   const navigate = useNavigate();
   const [selectedTier, setSelectedTier] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  if (!event) {
-    return <div className="min-h-screen flex items-center justify-center">Memuat...</div>;
-  }
+  const allEvents = events && events.length > 0 ? events : (event ? [event] : INITIAL_EVENTS);
+  const currentEvent = allEvents.find((e) => e.id === id) || allEvents[0];
 
-  // Hanya event utama yang punya tier & kuota; sisanya masih katalog.
-  if (id !== event.id) {
-    const catalogEvent = CATALOG_EVENTS.find((e) => e.id === id);
+  if (!currentEvent) {
     return (
       <div className="min-h-screen bg-[#F5F5F7] flex flex-col items-center justify-center px-6 text-center">
-        <h1 className="text-3xl font-bold text-[#1D1D1F] mb-3">
-          {catalogEvent ? catalogEvent.title : 'Event tidak ditemukan'}
-        </h1>
-        <p className="text-[#86868B] mb-8 max-w-sm">
-          {catalogEvent
-            ? 'Penjualan tiket untuk event ini belum dibuka. Pantau terus halaman utama, ya.'
-            : 'Event yang kamu cari tidak tersedia.'}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Link to="/" className="btn-primary">
-            Kembali ke Beranda
-          </Link>
-          <Link to={`/event/${event.id}`} className="btn-outline">
-            Lihat {event.title}
-          </Link>
-        </div>
+        <h1 className="text-3xl font-bold text-[#1D1D1F] mb-3">Event Tidak Ditemukan</h1>
+        <p className="text-[#86868B] mb-8 max-w-sm">Event yang kamu cari tidak tersedia.</p>
+        <Link to="/" className="btn-primary">
+          Kembali ke Beranda
+        </Link>
       </div>
     );
   }
 
-  const gallery = eventGallery(event.id, event.title);
+  const gallery = eventGallery(currentEvent.id, currentEvent.title);
   const currentImage = gallery[currentImageIndex] || gallery[0];
 
   const handlePrevImage = (e) => {
@@ -65,12 +51,12 @@ export default function EventDetailPage() {
     setCurrentImageIndex((prev) => (prev === gallery.length - 1 ? 0 : prev + 1));
   };
 
-  const availableTiers = event.tiers?.filter((t) => t.quota - t.sold > 0) || [];
+  const availableTiers = currentEvent.tiers?.filter((t) => t.quota - t.sold > 0) || [];
   const minPrice = availableTiers.length
     ? Math.min(...availableTiers.map((t) => t.price))
-    : Math.min(...(event.tiers?.map((t) => t.price) || [0]));
+    : Math.min(...(currentEvent.tiers?.map((t) => t.price) || [0]));
 
-  const bestSellerId = event.tiers?.reduce(
+  const bestSellerId = currentEvent.tiers?.reduce(
     (best, t) => (!best || t.sold / t.quota > best.sold / best.quota ? t : best),
     null
   )?.id;
@@ -158,12 +144,22 @@ export default function EventDetailPage() {
       <div className="w-full md:w-[58vw] md:h-screen overflow-y-auto relative bg-white rounded-t-3xl md:rounded-none -mt-6 md:mt-0 z-10 no-scrollbar flex-1">
         <div className="max-w-[800px] mx-auto pb-32">
           <div className="p-6 md:p-12 md:pt-24 flex flex-col gap-4 animate-slide-up">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-50 text-[#1173d4]">
+                {currentEvent.category || 'Konser'}
+              </span>
+              {currentEvent.badge && (
+                <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+                  {currentEvent.badge}
+                </span>
+              )}
+            </div>
             <h1 className="text-4xl md:text-[52px] font-black leading-[1.1] tracking-[-0.02em] text-[#1D1D1F]">
-              {event.title}
+              {currentEvent.title}
             </h1>
             <p className="text-[16px] text-[#86868B] font-medium flex items-center gap-2">
               <MapPin className="w-4 h-4 text-[#1173d4]" />
-              {event.location} • {formatDate(event.date)}
+              {currentEvent.location} • {formatDate(currentEvent.date)}
             </p>
           </div>
 
@@ -171,10 +167,10 @@ export default function EventDetailPage() {
 
           <div className="p-6 md:p-12 grid grid-cols-2 gap-4">
             {[
-              { icon: Calendar, label: 'Tanggal', value: formatDate(event.date) },
-              { icon: Clock, label: 'Waktu', value: `${formatTime(event.date)} WIB` },
-              { icon: MapPin, label: 'Lokasi', value: event.location },
-              { icon: Users, label: 'Penyelenggara', value: event.organizer },
+              { icon: Calendar, label: 'Tanggal', value: formatDate(currentEvent.date) },
+              { icon: Clock, label: 'Waktu', value: `${formatTime(currentEvent.date)} WIB` },
+              { icon: MapPin, label: 'Lokasi', value: currentEvent.location },
+              { icon: Users, label: 'Penyelenggara', value: currentEvent.organizer || 'Karcix Official' },
             ].map((item, i) => (
               <div
                 key={item.label}
@@ -195,18 +191,18 @@ export default function EventDetailPage() {
           <div className="px-6 md:px-12 space-y-3">
             <h2 className="text-xl font-bold text-[#1D1D1F]">Tentang Event</h2>
             <p className="text-[#555558] text-[15px] leading-relaxed whitespace-pre-line">
-              {event.description}
+              {currentEvent.description}
             </p>
           </div>
 
-          {event.lineup && event.lineup.length > 0 && (
+          {currentEvent.lineup && currentEvent.lineup.length > 0 && (
             <div className="p-6 md:p-12 space-y-3">
               <h2 className="text-xl font-bold text-[#1D1D1F] flex items-center gap-2">
                 <Music className="w-5 h-5 text-[#1173d4]" />
                 Guest Star &amp; Lineup
               </h2>
               <div className="flex flex-wrap gap-2 pt-1">
-                {event.lineup.map((artist) => (
+                {currentEvent.lineup.map((artist) => (
                   <span
                     key={artist}
                     className="px-4 py-2 bg-[#F5F5F7] border border-black/5 rounded-full text-sm font-semibold text-[#1D1D1F]"
@@ -223,53 +219,59 @@ export default function EventDetailPage() {
             <h2 className="text-xl font-bold text-[#1D1D1F]">Pilih Paket Tiket</h2>
 
             <div className="space-y-3">
-              {event.tiers?.map((tier) => {
-                const remaining = tier.quota - tier.sold;
-                const isSoldOut = remaining <= 0;
-                const isSelected = activeTierId === tier.id;
-                const isBestSeller = tier.id === bestSellerId && !isSoldOut;
+              {currentEvent.tiers && currentEvent.tiers.length > 0 ? (
+                currentEvent.tiers.map((tier) => {
+                  const remaining = tier.quota - tier.sold;
+                  const isSoldOut = remaining <= 0;
+                  const isSelected = activeTierId === tier.id;
+                  const isBestSeller = tier.id === bestSellerId && !isSoldOut;
 
-                return (
-                  <div
-                    key={tier.id}
-                    onClick={() => !isSoldOut && setSelectedTier(tier.id)}
-                    className={`relative p-5 rounded-2xl border transition-all cursor-pointer ${
-                      isSoldOut
-                        ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-200'
-                        : isSelected
-                        ? 'border-[#1173d4] bg-blue-50/30 shadow-md ring-2 ring-[#1173d4]/20'
-                        : 'border-black/10 bg-white hover:border-black/20 hover:shadow-sm'
-                    }`}
-                  >
-                    {isBestSeller && (
-                      <span className="absolute -top-2.5 right-4 bg-[#1173d4] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                        Terlaris
-                      </span>
-                    )}
-
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-bold text-[#1D1D1F] text-base">{tier.name}</h3>
-                        <p className="text-xs text-[#86868B] mt-1">{tier.description}</p>
-                        <span
-                          className={`inline-block text-xs font-medium mt-2 ${
-                            isSoldOut ? 'text-[#FF3B30]' : 'text-[#86868B]'
-                          }`}
-                        >
-                          {isSoldOut ? 'Habis Terjual' : `Tersisa ${remaining} tiket`}
+                  return (
+                    <div
+                      key={tier.id}
+                      onClick={() => !isSoldOut && setSelectedTier(tier.id)}
+                      className={`relative p-5 rounded-2xl border transition-all cursor-pointer ${
+                        isSoldOut
+                          ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-200'
+                          : isSelected
+                          ? 'border-[#1173d4] bg-blue-50/30 shadow-md ring-2 ring-[#1173d4]/20'
+                          : 'border-black/10 bg-white hover:border-black/20 hover:shadow-sm'
+                      }`}
+                    >
+                      {isBestSeller && (
+                        <span className="absolute -top-2.5 right-4 bg-[#1173d4] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                          Terlaris
                         </span>
-                      </div>
+                      )}
 
-                      <div className="text-right shrink-0">
-                        <span className="text-lg font-bold text-[#1D1D1F]">
-                          {formatRupiah(tier.price)}
-                        </span>
-                        <span className="block text-[11px] text-[#86868B]">per tiket</span>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-bold text-[#1D1D1F] text-base">{tier.name}</h3>
+                          <p className="text-xs text-[#86868B] mt-1">{tier.description}</p>
+                          <span
+                            className={`inline-block text-xs font-medium mt-2 ${
+                              isSoldOut ? 'text-[#FF3B30]' : 'text-[#86868B]'
+                            }`}
+                          >
+                            {isSoldOut ? 'Habis Terjual' : `Tersisa ${remaining} tiket`}
+                          </span>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-lg font-bold text-[#1D1D1F]">
+                            {formatRupiah(tier.price)}
+                          </span>
+                          <span className="block text-[11px] text-[#86868B]">per tiket</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-2xl">
+                  Tiket untuk event ini segera hadir.
+                </div>
+              )}
             </div>
           </div>
         </div>

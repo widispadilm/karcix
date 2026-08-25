@@ -27,10 +27,11 @@ export function mapDbTierToApp(dbTier) {
   if (!dbTier) return null;
   return {
     id: dbTier.id,
+    eventId: dbTier.event_id,
     name: dbTier.name,
     price: Number(dbTier.price),
     quota: Number(dbTier.quota),
-    sold: Number(dbTier.sold),
+    sold: Number(dbTier.sold || 0),
     description: dbTier.description,
     color: dbTier.color || '#22c55e',
   };
@@ -38,11 +39,15 @@ export function mapDbTierToApp(dbTier) {
 
 export function mapDbEventToApp(dbEvent, dbTiers = []) {
   if (!dbEvent) return null;
+  const tiers = dbTiers.map(mapDbTierToApp);
+  const prices = tiers.map((t) => t.price);
+  const minPrice = prices.length ? Math.min(...prices) : Number(dbEvent.price_from || 0);
+
   return {
     id: dbEvent.id,
     title: dbEvent.title,
     subtitle: dbEvent.subtitle,
-    category: dbEvent.category,
+    category: dbEvent.category || 'Konser',
     date: dbEvent.date,
     endDate: dbEvent.end_date,
     location: dbEvent.location,
@@ -50,11 +55,12 @@ export function mapDbEventToApp(dbEvent, dbTiers = []) {
     description: dbEvent.description,
     lineup: dbEvent.lineup || [],
     organizer: dbEvent.organizer,
-    priceFrom: Number(dbEvent.price_from || 0),
+    priceFrom: minPrice,
     rating: dbEvent.rating || '4.9',
     badge: dbEvent.badge,
     posterUrl: dbEvent.poster_url,
-    tiers: dbTiers.map(mapDbTierToApp),
+    isActive: dbEvent.is_active !== false,
+    tiers,
   };
 }
 
@@ -63,8 +69,8 @@ export async function fetchSupabaseState() {
 
   try {
     const [eventsRes, tiersRes, ordersRes] = await Promise.all([
-      supabase.from('events').select('*').eq('id', 'evt-001').single(),
-      supabase.from('event_tiers').select('*').eq('event_id', 'evt-001').order('price', { ascending: true }),
+      supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+      supabase.from('event_tiers').select('*').order('price', { ascending: true }),
       supabase.from('orders').select('*').order('created_at', { ascending: false }),
     ]);
 
@@ -73,10 +79,16 @@ export async function fetchSupabaseState() {
       return null;
     }
 
-    const event = mapDbEventToApp(eventsRes.data, tiersRes.data || []);
-    const orders = (ordersRes.data || []).map(mapDbOrderToApp);
+    const allTiers = tiersRes.data || [];
+    const events = (eventsRes.data || []).map((dbEvent) => {
+      const eventTiers = allTiers.filter((t) => t.event_id === dbEvent.id);
+      return mapDbEventToApp(dbEvent, eventTiers);
+    });
 
-    return { event, orders };
+    const orders = (ordersRes.data || []).map(mapDbOrderToApp);
+    const event = events.find((e) => e.id === 'evt-001') || events[0] || null;
+
+    return { events, event, orders };
   } catch (err) {
     console.error('Error fetching Supabase state:', err);
     return null;
@@ -203,19 +215,84 @@ export async function uploadReceiptToSupabase(orderId, fileOrBase64) {
   }
 }
 
+export async function createEventInSupabase(eventData) {
+  if (!isSupabaseConfigured || !supabase) return null;
+
+  const dbEvent = {
+    id: eventData.id || `evt-${Date.now().toString().slice(-4)}`,
+    title: eventData.title,
+    subtitle: eventData.subtitle || '',
+    category: eventData.category || 'Konser',
+    date: eventData.date,
+    end_date: eventData.endDate || eventData.date,
+    location: eventData.location,
+    address: eventData.address || '',
+    description: eventData.description || '',
+    lineup: eventData.lineup || [],
+    organizer: eventData.organizer || 'Karcix Event',
+    is_active: true,
+  };
+
+  const { data: createdEvent, error: eventError } = await supabase
+    .from('events')
+    .insert([dbEvent])
+    .select()
+    .single();
+
+  if (eventError) {
+    console.error('Error inserting event in Supabase:', eventError);
+    throw eventError;
+  }
+
+  // Insert tiers if provided
+  if (eventData.tiers && eventData.tiers.length > 0) {
+    const dbTiers = eventData.tiers.map((t, idx) => ({
+      id: t.id || `tier-${createdEvent.id}-${idx + 1}`,
+      event_id: createdEvent.id,
+      name: t.name,
+      price: t.price,
+      quota: t.quota,
+      sold: 0,
+      description: t.description || '',
+      color: t.color || '#3b82f6',
+    }));
+
+    const { error: tiersError } = await supabase.from('event_tiers').insert(dbTiers);
+    if (tiersError) {
+      console.error('Error inserting tiers in Supabase:', tiersError);
+    }
+  }
+
+  return createdEvent;
+}
+
 export async function updateEventInSupabase(eventId, updates) {
   if (!isSupabaseConfigured || !supabase) return;
 
   const dbUpdates = {};
   if (updates.title !== undefined) dbUpdates.title = updates.title;
   if (updates.subtitle !== undefined) dbUpdates.subtitle = updates.subtitle;
+  if (updates.category !== undefined) dbUpdates.category = updates.category;
   if (updates.location !== undefined) dbUpdates.location = updates.location;
   if (updates.address !== undefined) dbUpdates.address = updates.address;
   if (updates.date !== undefined) dbUpdates.date = updates.date;
+  if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate;
   if (updates.description !== undefined) dbUpdates.description = updates.description;
+  if (updates.organizer !== undefined) dbUpdates.organizer = updates.organizer;
 
   const { error } = await supabase.from('events').update(dbUpdates).eq('id', eventId);
   if (error) console.error('Error updating event in Supabase:', error);
+}
+
+export async function deleteEventInSupabase(eventId) {
+  if (!isSupabaseConfigured || !supabase) return;
+  try {
+    await supabase.from('event_tiers').delete().eq('event_id', eventId);
+    const { error } = await supabase.from('events').delete().eq('id', eventId);
+    if (error) throw error;
+  } catch (err) {
+    console.error('Error deleting event in Supabase:', err);
+  }
 }
 
 export async function updateTierInSupabase(tierId, updates) {

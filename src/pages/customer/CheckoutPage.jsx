@@ -14,15 +14,18 @@ const PAYMENT_METHODS = [
 export default function CheckoutPage() {
   const { tierId } = useParams();
   const navigate = useNavigate();
-  const { event } = useAppState();
+  const { events, event } = useAppState();
   const dispatch = useAppDispatch();
   const [qty, setQty] = useState(1);
   const [form, setForm] = useState({ buyerName: '', email: '', whatsapp: '' });
   const [paymentMethod, setPaymentMethod] = useState('qris');
   const [holdExpired, setHoldExpired] = useState(false);
 
-  const tier = event?.tiers?.find((t) => t.id === tierId);
-  if (!tier) {
+  const allEvents = events && events.length > 0 ? events : (event ? [event] : []);
+  const targetEvent = allEvents.find((e) => e.tiers?.some((t) => t.id === tierId)) || event;
+  const tier = targetEvent?.tiers?.find((t) => t.id === tierId);
+
+  if (!tier || !targetEvent) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-[#86868B]">Tiket tidak ditemukan.</p>

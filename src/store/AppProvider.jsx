@@ -14,7 +14,9 @@ import {
   releaseOrderInSupabase,
   checkInTicketInSupabase,
   uploadReceiptToSupabase,
+  createEventInSupabase,
   updateEventInSupabase,
+  deleteEventInSupabase,
   updateTierInSupabase,
 } from '../lib/supabaseSync';
 
@@ -29,10 +31,10 @@ export default function AppProvider({ children }) {
   // Listen for storage events across different tabs in the same browser
   useEffect(() => {
     const handleStorage = (e) => {
-      if (e.key === 'karcix-state-v1' && e.newValue) {
+      if ((e.key === 'karcix-state-v2' || e.key === 'karcix-state-v1') && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
-          if (parsed?.orders && parsed?.event) {
+          if (parsed?.orders) {
             baseDispatch({
               type: 'SET_STATE',
               payload: parsed,
@@ -57,6 +59,7 @@ export default function AppProvider({ children }) {
           baseDispatch({
             type: 'SET_STATE',
             payload: {
+              events: data.events,
               event: data.event,
               orders: data.orders,
             },
@@ -154,11 +157,31 @@ export default function AppProvider({ children }) {
             console.error('Supabase UPLOAD_RECEIPT failed:', err)
           );
           break;
-        case 'UPDATE_EVENT':
-          updateEventInSupabase('evt-001', action.payload);
+        case 'ADD_EVENT':
+          createEventInSupabase(action.payload).catch((err) =>
+            console.error('Supabase ADD_EVENT failed:', err)
+          );
           break;
+        case 'UPDATE_EVENT': {
+          const eventId = action.payload.id || action.payload.eventId || 'evt-001';
+          updateEventInSupabase(eventId, action.payload).catch((err) =>
+            console.error('Supabase UPDATE_EVENT failed:', err)
+          );
+          break;
+        }
+        case 'DELETE_EVENT': {
+          const eventId = action.payload.eventId || action.payload.id;
+          if (eventId) {
+            deleteEventInSupabase(eventId).catch((err) =>
+              console.error('Supabase DELETE_EVENT failed:', err)
+            );
+          }
+          break;
+        }
         case 'UPDATE_TIER':
-          updateTierInSupabase(action.payload.tierId, action.payload.updates);
+          updateTierInSupabase(action.payload.tierId, action.payload.updates).catch((err) =>
+            console.error('Supabase UPDATE_TIER failed:', err)
+          );
           break;
         default:
           break;
@@ -170,6 +193,8 @@ export default function AppProvider({ children }) {
   const value = useMemo(
     () => ({
       ...state,
+      events: state.events || [],
+      event: state.event || (state.events && state.events[0]) || null,
       lastCreatedOrder:
         state.orders.find((o) => o.id === state.lastCreatedOrderId) || null,
     }),

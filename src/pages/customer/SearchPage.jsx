@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { Search, TrendingUp, MapPin, ChevronRight, Filter, SearchX } from 'lucide-react';
 import Footer from '../../components/Footer';
 import { useAppState } from '../../store/appStore';
-import { formatRupiah, formatDate, CATALOG_EVENTS, eventToCard } from '../../data/mockData';
+import { formatRupiah, formatDate, INITIAL_EVENTS, eventToCard } from '../../data/mockData';
 import { poster } from '../../assets/posters';
 
 const CATEGORIES = ['Konser', 'Festival', 'Electronic', 'Jazz & Blues'];
@@ -16,7 +16,7 @@ const SORTS = {
 
 export default function SearchPage() {
   const navigate = useNavigate();
-  const { event } = useAppState();
+  const { events, event } = useAppState();
 
   const [query, setQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -25,10 +25,10 @@ export default function SearchPage() {
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [sort, setSort] = useState('recommended');
 
-  const allEvents = useMemo(
-    () => (event ? [eventToCard(event), ...CATALOG_EVENTS] : CATALOG_EVENTS),
-    [event]
-  );
+  const allEvents = useMemo(() => {
+    const evts = events && events.length > 0 ? events : (event ? [event] : INITIAL_EVENTS);
+    return evts.map(eventToCard).filter(Boolean);
+  }, [events, event]);
 
   // Filter dijalankan sungguhan — sebelumnya input & checkbox hanya dekorasi.
   const results = useMemo(() => {

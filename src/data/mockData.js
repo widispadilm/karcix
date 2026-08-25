@@ -22,93 +22,202 @@ export const MAX_QTY_PER_ORDER = 4;
 /** Batas ukuran bukti transfer yang diterima (byte). */
 export const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
-export const INITIAL_EVENT = {
-  id: 'evt-001',
-  title: 'PENSI FEST 2026',
-  subtitle: 'Nite of Stars',
-  date: '2026-09-20T19:00:00',
-  endDate: '2026-09-20T23:00:00',
-  location: 'Lapangan SMAN 1 Jakarta',
-  address: 'Jl. Budi Utomo No.7, Jakarta Pusat',
-  description: 'Malam penuh bintang dengan penampilan spektakuler dari band-band terbaik sekolah se-Jakarta! Nikmati live music, food court, dan photo booth gratis.',
-  lineup: ['Stellar Band', 'Moonrise Collective', 'Echo Project', 'DJ NightOwl'],
-  organizer: 'OSIS SMAN 1 Jakarta',
-  tiers: [
-    {
-      id: 'tier-presale',
-      name: 'Presale 1',
-      price: 50000,
-      quota: 200,
-      sold: 147,
-      description: 'Early bird — harga spesial!',
-      color: '#22c55e',
-    },
-    {
-      id: 'tier-regular',
-      name: 'Regular',
-      price: 75000,
-      quota: 500,
-      sold: 213,
-      description: 'Tiket reguler standing area',
-      color: '#3b82f6',
-    },
-    {
-      id: 'tier-vip',
-      name: 'VIP',
-      price: 100000,
-      quota: 100,
-      sold: 42,
-      description: 'Front row + free merchandise + meet & greet',
-      color: '#a855f7',
-    },
-  ],
-};
-
-/**
- * Katalog event lain — hanya untuk mengisi beranda & halaman pencarian.
- * Belum bisa dibeli; halaman detail akan memberi tahu bahwa penjualannya belum dibuka.
- */
-export const CATALOG_EVENTS = [
+export const INITIAL_EVENTS = [
+  {
+    id: 'evt-001',
+    title: 'PENSI FEST 2026',
+    subtitle: 'Nite of Stars',
+    category: 'Konser',
+    date: '2026-09-20T19:00:00',
+    endDate: '2026-09-20T23:00:00',
+    location: 'Lapangan SMAN 1 Jakarta',
+    address: 'Jl. Budi Utomo No.7, Jakarta Pusat',
+    description: 'Malam penuh bintang dengan penampilan spektakuler dari band-band terbaik sekolah se-Jakarta! Nikmati live music, food court, dan photo booth gratis.',
+    lineup: ['Stellar Band', 'Moonrise Collective', 'Echo Project', 'DJ NightOwl'],
+    organizer: 'OSIS SMAN 1 Jakarta',
+    badge: 'Segera Habis',
+    rating: '4.9',
+    tiers: [
+      {
+        id: 'tier-presale',
+        name: 'Presale 1',
+        price: 50000,
+        quota: 200,
+        sold: 147,
+        description: 'Early bird — harga spesial!',
+        color: '#22c55e',
+      },
+      {
+        id: 'tier-regular',
+        name: 'Regular',
+        price: 75000,
+        quota: 500,
+        sold: 213,
+        description: 'Tiket reguler standing area',
+        color: '#3b82f6',
+      },
+      {
+        id: 'tier-vip',
+        name: 'VIP',
+        price: 100000,
+        quota: 100,
+        sold: 42,
+        description: 'Front row + free merchandise + meet & greet',
+        color: '#a855f7',
+      },
+    ],
+  },
   {
     id: 'evt-002',
     title: 'Jakarta Soundwave 2026',
+    subtitle: 'The Biggest Wave Festival',
     category: 'Festival',
     date: '2026-10-12T16:00:00',
+    endDate: '2026-10-12T23:00:00',
     location: 'GBK Senayan, Jakarta',
-    priceFrom: 750000,
+    address: 'Jl. Pintu Satu Senayan, Jakarta Pusat',
+    description: 'Festival musik multi-genre terbesar di penghujung tahun menghadirkan panggung megah berstandar internasional dengan puluhan musisi papan atas.',
+    lineup: ['The Waves', 'Senja Symphony', 'Jakarta Groove', 'DJ Spectra'],
+    organizer: 'Soundwave Entertainment',
     rating: '4.9',
+    tiers: [
+      {
+        id: 'tier-sw-early',
+        name: 'Early Bird 2-Day Pass',
+        price: 650000,
+        quota: 150,
+        sold: 45,
+        description: 'Akses penuh 2 hari festival harga spesial',
+        color: '#22c55e',
+      },
+      {
+        id: 'tier-sw-ga',
+        name: 'General Admission (GA)',
+        price: 850000,
+        quota: 400,
+        sold: 120,
+        description: 'Standing area umum dengan akses stage utama',
+        color: '#3b82f6',
+      },
+      {
+        id: 'tier-sw-vip',
+        name: 'VIP Lounge Pass',
+        price: 1500000,
+        quota: 80,
+        sold: 25,
+        description: 'VIP Deck + Free Flow Drinks + Eksklusif Lounge Area',
+        color: '#a855f7',
+      },
+    ],
   },
   {
     id: 'evt-003',
     title: 'Neon Nights: Warehouse Project',
+    subtitle: 'Rhythm & Electronic Glow',
     category: 'Electronic',
     date: '2026-10-18T21:00:00',
+    endDate: '2026-10-19T04:00:00',
     location: 'SCBD Expo, Jakarta',
-    priceFrom: 450000,
+    address: 'Sudirman Central Business District, Jakarta Selatan',
+    description: 'Pengalaman pesta musik elektronik berbalut visual neon dan laser show 360 derajat kelas dunia.',
+    lineup: ['DJ NightOwl', 'Cyber Pulse', 'Bassline Hero', 'Vortex'],
+    organizer: 'Neon Project ID',
     badge: 'Hampir Habis',
+    rating: '4.8',
+    tiers: [
+      {
+        id: 'tier-nn-raver',
+        name: 'Raver Early Access',
+        price: 350000,
+        quota: 100,
+        sold: 30,
+        description: 'Masuk sebelum jam 21:00 WIB',
+        color: '#ec4899',
+      },
+      {
+        id: 'tier-nn-fest',
+        name: 'Festival Standing',
+        price: 500000,
+        quota: 300,
+        sold: 80,
+        description: 'Akses dance floor utama & visual area',
+        color: '#0ea5e9',
+      },
+      {
+        id: 'tier-nn-table',
+        name: 'Sofa & Table VIP (Per Tiket)',
+        price: 1200000,
+        quota: 50,
+        sold: 15,
+        description: 'Sofa reservation + priority bar & valet',
+        color: '#f59e0b',
+      },
+    ],
   },
   {
     id: 'evt-004',
     title: 'Autumn Leaves Jazz Session',
+    subtitle: 'Intimate Jazz & Blues',
     category: 'Jazz & Blues',
     date: '2026-11-02T19:30:00',
+    endDate: '2026-11-02T23:00:00',
     location: 'Ciputra Artpreneur, Jakarta',
-    priceFrom: 1200000,
+    address: 'Ciputra World 1, Kuningan, Jakarta Selatan',
+    description: 'Malam jazz yang syahdu dan intim bersama deretan maestro jazz legendaris tanah air di auditorium berakustik sempurna.',
+    lineup: ['Jazz All-Stars', 'Saxophone Soul', 'Trio Nostalgia'],
+    organizer: 'Jazz Circle Community',
+    rating: '4.9',
+    tiers: [
+      {
+        id: 'tier-jz-bronze',
+        name: 'Bronze Seating',
+        price: 750000,
+        quota: 120,
+        sold: 35,
+        description: 'Tribun atas dengan akustik jernih',
+        color: '#d97706',
+      },
+      {
+        id: 'tier-jz-silver',
+        name: 'Silver Row',
+        price: 1100000,
+        quota: 150,
+        sold: 50,
+        description: 'Baris tengah pandangan langsung ke panggung',
+        color: '#64748b',
+      },
+      {
+        id: 'tier-jz-gold',
+        name: 'Gold Front Row',
+        price: 1800000,
+        quota: 60,
+        sold: 18,
+        description: 'Baris paling depan + Cocktail Dinner eksklusif',
+        color: '#eab308',
+      },
+    ],
   },
 ];
 
-/** Ubah event utama (yang punya tier & kuota) menjadi bentuk kartu katalog. */
+export const INITIAL_EVENT = INITIAL_EVENTS[0];
+export const CATALOG_EVENTS = INITIAL_EVENTS;
+
+/** Ubah event menjadi bentuk kartu katalog */
 export function eventToCard(event) {
+  if (!event) return null;
   const prices = event.tiers?.map((t) => t.price) || [];
   const remaining = event.tiers?.reduce((sum, t) => sum + (t.quota - t.sold), 0) ?? 0;
+  const minPrice = prices.length ? Math.min(...prices) : (event.priceFrom || 0);
+
   return {
     id: event.id,
     title: event.title,
-    category: 'Konser',
+    category: event.category || 'Konser',
     date: event.date,
     location: event.location,
-    priceFrom: prices.length ? Math.min(...prices) : 0,
-    badge: remaining > 0 && remaining < 100 ? 'Segera Habis' : undefined,
+    priceFrom: minPrice,
+    badge: event.badge || (remaining > 0 && remaining < 100 ? 'Segera Habis' : undefined),
+    rating: event.rating || '4.9',
     available: true,
   };
 }

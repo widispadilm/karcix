@@ -1,8 +1,33 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Shield, ClipboardList, Settings, CheckCircle, XCircle, Eye, Save,
-  Image as ImageIcon, AlertTriangle, Inbox, X, Ticket, RotateCcw,
-  Users, UserPlus, KeyRound, Ban, Search, Edit3, Trash2, Phone, Mail,
+  Shield,
+  ClipboardList,
+  Settings,
+  CheckCircle,
+  XCircle,
+  Eye,
+  Save,
+  Image as ImageIcon,
+  AlertTriangle,
+  Inbox,
+  X,
+  Ticket,
+  Users,
+  UserPlus,
+  KeyRound,
+  Ban,
+  Search,
+  Edit3,
+  Trash2,
+  Phone,
+  Mail,
+  Plus,
+  CalendarPlus,
+  Sparkles,
+  Calendar,
+  MapPin,
+  Clock,
+  Layers,
 } from 'lucide-react';
 import { useAppState, useAppDispatch } from '../../store/appStore';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +37,7 @@ import {
   formatDate,
   ORDER_STATUS,
   ORDER_STATUS_LABEL,
+  INITIAL_EVENTS,
 } from '../../data/mockData';
 import StatusBadge from '../../components/StatusBadge';
 
@@ -33,8 +59,10 @@ const TABS = [
 /** `datetime-local` hanya menerima format YYYY-MM-DDTHH:mm. */
 const toDateTimeLocal = (value) => (value ? value.slice(0, 16) : '');
 
+const DEFAULT_CATEGORIES = ['Konser', 'Festival', 'Electronic', 'Jazz & Blues', 'Teater', 'Olahraga'];
+
 export default function AdminDashboard() {
-  const { event, orders } = useAppState();
+  const { events, event, orders } = useAppState();
   const dispatch = useAppDispatch();
   const {
     customers,
@@ -66,21 +94,54 @@ export default function AdminDashboard() {
   // Reset Password State
   const [newPasswordVal, setNewPasswordVal] = useState('');
 
+  // Multi-Event State
+  const allEvents = useMemo(() => {
+    return events && events.length > 0 ? events : (event ? [event] : INITIAL_EVENTS);
+  }, [events, event]);
+
+  const [selectedEventId, setSelectedEventId] = useState(allEvents[0]?.id || 'evt-001');
+  const [addEventModal, setAddEventModal] = useState(false);
+
+  // Selected Event Form State
+  const currentSelectedEvent = useMemo(() => {
+    return allEvents.find((e) => e.id === selectedEventId) || allEvents[0];
+  }, [allEvents, selectedEventId]);
+
   const [eventForm, setEventForm] = useState(null);
   const [tierForms, setTierForms] = useState([]);
 
+  // New Event Form State
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventSubtitle, setNewEventSubtitle] = useState('');
+  const [newEventCategory, setNewEventCategory] = useState('Konser');
+  const [newEventLocation, setNewEventLocation] = useState('');
+  const [newEventAddress, setNewEventAddress] = useState('');
+  const [newEventDate, setNewEventDate] = useState('');
+  const [newEventEndDate, setNewEventEndDate] = useState('');
+  const [newEventOrganizer, setNewEventOrganizer] = useState('');
+  const [newEventDescription, setNewEventDescription] = useState('');
+  const [newEventTiers, setNewEventTiers] = useState([
+    { name: 'Presale', price: 50000, quota: 100, description: 'Early bird tiket harga spesial', color: '#22c55e' },
+    { name: 'Regular', price: 75000, quota: 250, description: 'Tiket reguler standing area', color: '#3b82f6' },
+    { name: 'VIP', price: 150000, quota: 50, description: 'VIP Lounge + Free Merchandise', color: '#a855f7' },
+  ]);
+
   useEffect(() => {
-    if (!event) return;
+    if (!currentSelectedEvent) return;
     setEventForm({
-      title: event.title || '',
-      subtitle: event.subtitle || '',
-      location: event.location || '',
-      address: event.address || '',
-      date: toDateTimeLocal(event.date),
-      description: event.description || '',
+      id: currentSelectedEvent.id,
+      title: currentSelectedEvent.title || '',
+      subtitle: currentSelectedEvent.subtitle || '',
+      category: currentSelectedEvent.category || 'Konser',
+      location: currentSelectedEvent.location || '',
+      address: currentSelectedEvent.address || '',
+      date: toDateTimeLocal(currentSelectedEvent.date),
+      endDate: toDateTimeLocal(currentSelectedEvent.endDate),
+      organizer: currentSelectedEvent.organizer || '',
+      description: currentSelectedEvent.description || '',
     });
-    setTierForms(event.tiers?.map((t) => ({ ...t })) || []);
-  }, [event]);
+    setTierForms(currentSelectedEvent.tiers?.map((t) => ({ ...t })) || []);
+  }, [currentSelectedEvent]);
 
   const pendingOrders = useMemo(
     () => orders.filter((o) => o.status === ORDER_STATUS.PENDING && o.receiptUrl),
@@ -108,12 +169,19 @@ export default function AdminDashboard() {
           c.whatsapp?.includes(q)
         );
       })
-      .map((c) => {
-        const userOrders = orders.filter((o) => o.email?.toLowerCase() === c.email?.toLowerCase());
-        const totalTickets = userOrders.reduce((sum, o) => sum + (o.status === 'paid' ? o.qty : 0), 0);
-        const totalSpent = userOrders.reduce((sum, o) => sum + (o.status === 'paid' ? o.totalAmount : 0), 0);
+      .map((cust) => {
+        const userOrders = orders.filter(
+          (o) => o.email?.toLowerCase() === cust.email?.toLowerCase()
+        );
+        const totalTickets = userOrders
+          .filter((o) => o.status === 'paid')
+          .reduce((sum, o) => sum + (o.qty || 0), 0);
+        const totalSpent = userOrders
+          .filter((o) => o.status === 'paid')
+          .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
         return {
-          ...c,
+          ...cust,
           orderCount: userOrders.length,
           totalTickets,
           totalSpent,
@@ -143,8 +211,37 @@ export default function AdminDashboard() {
     );
   };
 
+  const handleAddTierRow = () => {
+    const newTierId = `tier-${currentSelectedEvent?.id || 'evt'}-${Date.now().toString().slice(-4)}`;
+    setTierForms((prev) => [
+      ...prev,
+      {
+        id: newTierId,
+        name: 'Kategori Baru',
+        price: 50000,
+        quota: 100,
+        sold: 0,
+        description: 'Deskripsi paket tiket baru',
+        color: '#3b82f6',
+      },
+    ]);
+  };
+
+  const handleRemoveTierRow = (index) => {
+    if (tierForms.length <= 1) {
+      showToast('Event harus memiliki minimal 1 paket tiket.', 'error');
+      return;
+    }
+    const target = tierForms[index];
+    if (target.sold > 0) {
+      showToast(`Tidak bisa menghapus tier ${target.name} karena sudah ada ${target.sold} tiket terjual.`, 'error');
+      return;
+    }
+    setTierForms((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSaveEvent = () => {
-    const invalid = tierForms.find((t) => Number(t.quota) < t.sold);
+    const invalid = tierForms.find((t) => Number(t.quota) < (t.sold || 0));
     if (invalid) {
       showToast(
         `Kuota ${invalid.name} tidak boleh kurang dari ${invalid.sold} tiket yang sudah terjual.`,
@@ -156,12 +253,21 @@ export default function AdminDashboard() {
     dispatch({
       type: 'UPDATE_EVENT',
       payload: {
+        id: eventForm.id || selectedEventId,
         title: eventForm.title,
         subtitle: eventForm.subtitle,
+        category: eventForm.category,
         location: eventForm.location,
         address: eventForm.address,
-        date: eventForm.date ? new Date(eventForm.date).toISOString() : event.date,
+        date: eventForm.date ? new Date(eventForm.date).toISOString() : currentSelectedEvent.date,
+        endDate: eventForm.endDate ? new Date(eventForm.endDate).toISOString() : currentSelectedEvent.endDate,
+        organizer: eventForm.organizer,
         description: eventForm.description,
+        tiers: tierForms.map((t) => ({
+          ...t,
+          price: Number(t.price),
+          quota: Number(t.quota),
+        })),
       },
     });
 
@@ -180,7 +286,76 @@ export default function AdminDashboard() {
       });
     });
 
-    showToast('Perubahan event dan kuota berhasil disimpan.');
+    showToast(`Perubahan untuk "${eventForm.title}" berhasil disimpan!`);
+  };
+
+  const handleDeleteEvent = (evt) => {
+    if (allEvents.length <= 1) {
+      showToast('Tidak dapat menghapus satu-satunya event yang ada.', 'error');
+      return;
+    }
+    if (!window.confirm(`Hapus event "${evt.title}" secara permanen? Semua data paket tiketnya akan ikut terhapus.`)) {
+      return;
+    }
+
+    dispatch({ type: 'DELETE_EVENT', payload: { eventId: evt.id } });
+    const nextEvent = allEvents.find((e) => e.id !== evt.id);
+    if (nextEvent) {
+      setSelectedEventId(nextEvent.id);
+    }
+    showToast(`Event "${evt.title}" berhasil dihapus.`);
+  };
+
+  const handleAddEventSubmit = (e) => {
+    e.preventDefault();
+    if (!newEventTitle.trim() || !newEventLocation.trim() || !newEventDate) {
+      showToast('Mohon lengkapi judul, lokasi, dan tanggal event.', 'error');
+      return;
+    }
+
+    const newId = `evt-${Date.now().toString().slice(-4)}`;
+    const newCreatedEvent = {
+      id: newId,
+      title: newEventTitle.trim(),
+      subtitle: newEventSubtitle.trim(),
+      category: newEventCategory,
+      location: newEventLocation.trim(),
+      address: newEventAddress.trim(),
+      date: new Date(newEventDate).toISOString(),
+      endDate: newEventEndDate ? new Date(newEventEndDate).toISOString() : new Date(newEventDate).toISOString(),
+      organizer: newEventOrganizer.trim() || 'Karcix Official',
+      description: newEventDescription.trim() || 'Deskripsi event baru.',
+      lineup: ['Guest Star 1', 'Guest Star 2'],
+      badge: 'Baru',
+      rating: '5.0',
+      isActive: true,
+      tiers: newEventTiers.map((t, idx) => ({
+        id: `tier-${newId}-${idx + 1}`,
+        eventId: newId,
+        name: t.name,
+        price: Number(t.price),
+        quota: Number(t.quota),
+        sold: 0,
+        description: t.description,
+        color: t.color || '#3b82f6',
+      })),
+    };
+
+    dispatch({ type: 'ADD_EVENT', payload: newCreatedEvent });
+    setSelectedEventId(newId);
+    setAddEventModal(false);
+
+    // Reset form
+    setNewEventTitle('');
+    setNewEventSubtitle('');
+    setNewEventLocation('');
+    setNewEventAddress('');
+    setNewEventDate('');
+    setNewEventEndDate('');
+    setNewEventOrganizer('');
+    setNewEventDescription('');
+
+    showToast(`Event "${newCreatedEvent.title}" berhasil dibuat dan aktif di beranda!`);
   };
 
   // Customer Management Handlers
@@ -191,7 +366,7 @@ export default function AdminDashboard() {
         name: newCustName,
         email: newCustEmail,
         whatsapp: newCustWhatsapp,
-        password: newCustPassword || 'password123',
+        password: newCustPassword || 'password123456',
         status: 'active',
       });
       showToast(`Pelanggan ${newCustName} berhasil ditambahkan.`);
@@ -219,16 +394,18 @@ export default function AdminDashboard() {
 
   const handleResetPasswordSubmit = (e) => {
     e.preventDefault();
-    if (!resetPwdModal || !newPasswordVal) return;
-    resetCustomerPassword(resetPwdModal.id, newPasswordVal);
-    showToast(`Password untuk ${resetPwdModal.name} berhasil diubah.`);
+    if (!resetPwdModal || !newPasswordVal.trim()) return;
+    if (newPasswordVal.length < 12) {
+      showToast('Kata sandi harus minimal 12 karakter.', 'error');
+      return;
+    }
+    resetCustomerPassword(resetPwdModal.id, newPasswordVal.trim());
+    showToast(`Kata sandi untuk ${resetPwdModal.name} berhasil direset.`);
     setResetPwdModal(null);
     setNewPasswordVal('');
   };
 
   const handleToggleStatus = (cust) => {
-    const action = cust.status === 'active' ? 'nonaktifkan / blokir' : 'aktifkan kembali';
-    if (!window.confirm(`Yakin ingin ${action} akun ${cust.name}?`)) return;
     toggleCustomerStatus(cust.id);
     showToast(`Status akun ${cust.name} diperbarui.`);
   };
@@ -247,44 +424,53 @@ export default function AdminDashboard() {
           <div>
             <h1 className="text-3xl font-bold text-[#1D1D1F]">Admin Dashboard</h1>
             <p className="text-[#86868B] text-sm mt-1">
-              Kelola pesanan, verifikasi pembayaran, data pengguna, dan event Karcix
+              Kelola pesanan, verifikasi pembayaran, data pengguna, dan multi-event Karcix
             </p>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border border-black/5 overflow-x-auto">
-          {TABS.map((t) => {
-            const Icon = t.icon;
-            const isActive = activeTab === t.key;
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
             return (
               <button
-                key={t.key}
-                onClick={() => setActiveTab(t.key)}
-                className={`flex-1 min-w-[140px] py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 min-w-[140px] py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   isActive
                     ? 'bg-[#1173d4] text-white shadow-md'
                     : 'text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/5'
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                <span>{t.label}</span>
-                {t.key === 'verifikasi' && pendingOrders.length > 0 && (
+                <span>{tab.label}</span>
+                {tab.key === 'verifikasi' && pendingOrders.length > 0 && (
                   <span
-                    className={`ml-1 px-1.5 py-0.5 rounded-full text-[11px] font-bold ${
-                      isActive ? 'bg-white text-[#1173d4]' : 'bg-[#1173d4] text-white'
+                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                      isActive ? 'bg-white text-[#1173d4]' : 'bg-red-500 text-white'
                     }`}
                   >
                     {pendingOrders.length}
                   </span>
                 )}
-                {t.key === 'pengguna' && (
+                {tab.key === 'pengguna' && (
                   <span
-                    className={`ml-1 px-1.5 py-0.5 rounded-full text-[11px] font-bold ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-black/5 text-[#86868B]'
+                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
                     }`}
                   >
                     {customers.length}
+                  </span>
+                )}
+                {tab.key === 'kelola' && (
+                  <span
+                    className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'
+                    }`}
+                  >
+                    {allEvents.length}
                   </span>
                 )}
               </button>
@@ -292,140 +478,118 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        {/* Tab: Verifikasi Pembayaran */}
+        {/* Tab 1: Verifikasi Pembayaran */}
         {activeTab === 'verifikasi' && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Shield className="w-5 h-5 text-[#1173d4]" />
-                Menunggu Verifikasi
-              </h2>
-              <span className="text-xs font-semibold text-[#86868B]">
-                {pendingOrders.length} Pesanan
-              </span>
-            </div>
+          <div className="space-y-4 animate-fade-in">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Shield className="w-5 h-5 text-[#1173d4]" />
+              Antrean Verifikasi ({pendingOrders.length})
+            </h2>
 
             {pendingOrders.length === 0 ? (
               <div className="bg-white border border-black/5 rounded-2xl p-12 text-center text-[#86868B] shadow-sm">
-                <Inbox className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                <Inbox className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                 <p className="font-semibold text-[#1D1D1F]">Tidak ada pesanan menunggu verifikasi</p>
                 <p className="text-xs mt-1">
-                  Pesanan baru dengan bukti transfer akan otomatis muncul di sini.
+                  Pesanan baru yang telah mengunggah bukti pembayaran QRIS/transfer akan muncul di sini.
                 </p>
               </div>
             ) : (
-              <div className="bg-white border border-black/5 rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="data-table w-full text-left">
-                    <thead>
-                      <tr>
-                        <th>Order ID</th>
-                        <th>Nama & Kontak</th>
-                        <th>Tier</th>
-                        <th>Total</th>
-                        <th>Waktu</th>
-                        <th>Bukti</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pendingOrders.map((order) => (
-                        <tr key={order.id}>
-                          <td className="font-mono text-xs font-semibold text-[#1173d4]">
-                            {order.id}
-                          </td>
-                          <td>
-                            <p className="font-semibold text-sm text-[#1D1D1F]">{order.buyerName}</p>
-                            <p className="text-xs text-[#86868B]">{order.email}</p>
-                          </td>
-                          <td>
-                            <span className="font-medium text-xs text-[#1D1D1F]">{order.tierName}</span>
-                            <span className="text-xs text-[#86868B] block">{order.qty} tiket</span>
-                          </td>
-                          <td>
-                            <p className="font-semibold text-sm text-[#1D1D1F]">
-                              {formatRupiah(order.totalAmount)}
-                            </p>
-                            <p className="text-[11px] text-[#86868B]">kode unik {order.uniqueCode}</p>
-                          </td>
-                          <td className="text-xs text-[#86868B]">
-                            {formatDateTime(order.timestamp)}
-                          </td>
-                          <td>
-                            {order.receiptUrl ? (
-                              <button
-                                onClick={() => setReceiptModal(order.receiptUrl)}
-                                className="px-2.5 py-1.5 bg-blue-50 text-[#1173d4] hover:bg-blue-100 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-                              >
-                                <Eye className="w-3.5 h-3.5" /> Lihat
-                              </button>
-                            ) : (
-                              <span className="text-xs text-[#86868B]">-</span>
-                            )}
-                          </td>
-                          <td>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleApprove(order.id)}
-                                className="p-2 rounded-xl bg-green-50 text-[#22c55e] hover:bg-green-100 transition-colors"
-                                title="Setujui dan Terbitkan E-Ticket"
-                              >
-                                <CheckCircle className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => handleReject(order.id)}
-                                className="p-2 rounded-xl bg-red-50 text-[#FF3B30] hover:bg-red-100 transition-colors"
-                                title="Tolak Pesanan"
-                              >
-                                <XCircle className="w-5 h-5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pendingOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="bg-white border border-black/5 rounded-2xl p-5 shadow-sm space-y-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-xs font-mono text-[#86868B] block mb-1 font-bold">
+                          {order.id}
+                        </span>
+                        <h3 className="font-bold text-[#1D1D1F] text-base">{order.buyerName}</h3>
+                        <p className="text-xs text-[#86868B]">{order.email}</p>
+                      </div>
+                      <StatusBadge status={order.status} />
+                    </div>
+
+                    <div className="bg-[#F5F5F7] p-3 rounded-xl space-y-1.5 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-[#86868B]">Event:</span>
+                        <span className="font-semibold text-[#1D1D1F] truncate max-w-[160px]">
+                          {order.eventTitle || currentSelectedEvent?.title || 'PENSI FEST 2026'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#86868B]">Tiket:</span>
+                        <span className="font-semibold text-[#1D1D1F]">
+                          {order.tierName} × {order.qty}
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-bold border-t border-black/5 pt-1.5">
+                        <span>Total Tagihan:</span>
+                        <span className="text-[#1173d4] text-sm">
+                          {formatRupiah(order.totalAmount)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {order.receiptUrl ? (
+                      <button
+                        onClick={() => setReceiptModal(order.receiptUrl)}
+                        className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-blue-200 bg-blue-50/50 hover:bg-blue-100/50 text-[#1173d4] text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4" /> Lihat Bukti Pembayaran
+                      </button>
+                    ) : (
+                      <div className="text-center p-2 text-xs text-amber-600 bg-amber-50 rounded-xl">
+                        Belum ada bukti pembayaran
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={() => handleReject(order.id)}
+                        className="flex-1 py-2.5 px-3 rounded-xl border border-red-200 text-[#FF3B30] hover:bg-red-50 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <XCircle className="w-4 h-4" /> Tolak
+                      </button>
+                      <button
+                        onClick={() => handleApprove(order.id)}
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                      >
+                        <CheckCircle className="w-4 h-4" /> Setujui &amp; Terbitkan
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         )}
 
-        {/* Tab: Riwayat Pesanan */}
+        {/* Tab 2: Riwayat Pesanan */}
         {activeTab === 'riwayat' && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-[#1173d4]" />
-                Riwayat Pesanan
+                Semua Pesanan ({filteredOrders.length})
               </h2>
-              <div className="flex flex-wrap gap-2">
-                {HISTORY_FILTERS.map((f) => {
-                  const count =
-                    f.key === 'all'
-                      ? orders.length
-                      : orders.filter((o) => o.status === f.key).length;
-                  return (
-                    <button
-                      key={f.key}
-                      onClick={() => setHistoryFilter(f.key)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                        historyFilter === f.key
-                          ? 'bg-[#1173d4] text-white shadow-sm'
-                          : 'bg-white text-[#86868B] hover:text-[#1D1D1F] border border-black/5'
-                      }`}
-                    >
-                      {f.label}
-                      <span
-                        className={`px-1.5 py-0.2 rounded text-[10px] ${
-                          historyFilter === f.key ? 'bg-white/20' : 'bg-black/5'
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
+
+              <div className="flex bg-white p-1 rounded-xl border border-black/5 overflow-x-auto text-xs">
+                {HISTORY_FILTERS.map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setHistoryFilter(f.key)}
+                    className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                      historyFilter === f.key
+                        ? 'bg-[#1173d4] text-white shadow-sm'
+                        : 'text-[#86868B] hover:text-[#1D1D1F]'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -434,41 +598,58 @@ export default function AdminDashboard() {
                 <table className="data-table w-full text-left">
                   <thead>
                     <tr>
-                      <th>Order ID</th>
-                      <th>Pelanggan</th>
-                      <th>Tier &amp; Qty</th>
-                      <th>Total</th>
+                      <th>ID Pesanan</th>
+                      <th>Event &amp; Pembeli</th>
+                      <th>Kategori &amp; Qty</th>
+                      <th>Total Tagihan</th>
                       <th>Status</th>
                       <th>Waktu</th>
+                      <th>Bukti</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-[#86868B]">
-                          Tidak ada data pesanan
+                        <td colSpan={7} className="p-8 text-center text-[#86868B]">
+                          Tidak ada pesanan
                         </td>
                       </tr>
                     ) : (
-                      filteredOrders.map((order) => (
-                        <tr key={order.id}>
-                          <td className="font-mono text-xs font-semibold text-[#1173d4]">{order.id}</td>
+                      filteredOrders.map((o) => (
+                        <tr key={o.id}>
+                          <td className="font-mono text-xs font-bold text-[#1D1D1F]">{o.id}</td>
                           <td>
-                            <div className="font-semibold text-sm text-[#1D1D1F]">{order.buyerName}</div>
-                            <div className="text-xs text-[#86868B]">{order.email}</div>
+                            <p className="font-semibold text-sm text-[#1D1D1F]">{o.buyerName}</p>
+                            <p className="text-xs text-[#86868B]">{o.email}</p>
+                            {o.eventTitle && (
+                              <span className="inline-block text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mt-0.5">
+                                {o.eventTitle}
+                              </span>
+                            )}
+                          </td>
+                          <td className="text-xs">
+                            <span className="font-semibold text-[#1D1D1F]">{o.tierName}</span>
+                            <span className="text-[#86868B]"> • {o.qty} Tiket</span>
+                          </td>
+                          <td className="font-bold text-sm text-[#1D1D1F]">
+                            {formatRupiah(o.totalAmount)}
                           </td>
                           <td>
-                            <div className="text-xs font-medium text-[#1D1D1F]">{order.tierName}</div>
-                            <div className="text-xs text-[#86868B]">{order.qty} tiket</div>
+                            <StatusBadge status={o.status} />
                           </td>
-                          <td className="font-semibold text-sm text-[#1D1D1F]">
-                            {formatRupiah(order.totalAmount)}
-                          </td>
+                          <td className="text-xs text-[#86868B]">{formatDateTime(o.timestamp)}</td>
                           <td>
-                            <StatusBadge status={order.status} />
-                          </td>
-                          <td className="text-[#86868B] text-xs">
-                            {formatDateTime(order.timestamp)}
+                            {o.receiptUrl ? (
+                              <button
+                                onClick={() => setReceiptModal(o.receiptUrl)}
+                                className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1173d4] transition-colors cursor-pointer"
+                                title="Lihat Bukti"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -480,10 +661,10 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Tab: Kelola Pengguna (User Management) [NEW!] */}
+        {/* Tab 3: Kelola Pengguna */}
         {activeTab === 'pengguna' && (
           <div className="space-y-6 animate-fade-in">
-            {/* Stats Bar */}
+            {/* Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-black/5 shadow-sm">
                 <div className="flex items-center justify-between">
@@ -493,7 +674,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <p className="text-2xl font-bold text-[#1D1D1F] mt-2">{customers.length}</p>
-                <p className="text-xs text-[#86868B] mt-1">Pelanggan terdaftar</p>
+                <p className="text-xs text-[#86868B] mt-1">Pembeli terdaftar di Karcix</p>
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-black/5 shadow-sm">
@@ -506,7 +687,7 @@ export default function AdminDashboard() {
                 <p className="text-2xl font-bold text-[#1D1D1F] mt-2">
                   {customers.filter((c) => c.status === 'active').length}
                 </p>
-                <p className="text-xs text-[#86868B] mt-1">Bisa login & beli tiket</p>
+                <p className="text-xs text-[#86868B] mt-1">Bisa login &amp; beli tiket</p>
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-black/5 shadow-sm">
@@ -566,7 +747,7 @@ export default function AdminDashboard() {
 
                 <button
                   onClick={() => setAddCustomerModal(true)}
-                  className="btn-primary py-2 px-3.5 text-xs flex items-center gap-1.5 shrink-0 shadow-sm"
+                  className="btn-primary py-2 px-3.5 text-xs flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>Tambah Pengguna</span>
@@ -580,7 +761,7 @@ export default function AdminDashboard() {
                 <table className="data-table w-full text-left">
                   <thead>
                     <tr>
-                      <th>Nama & Email</th>
+                      <th>Nama &amp; Email</th>
                       <th>Nomor WhatsApp</th>
                       <th>Total Tiket / Belanja</th>
                       <th>Status Akun</th>
@@ -629,31 +810,28 @@ export default function AdminDashboard() {
                           </td>
                           <td>
                             <div className="flex items-center justify-end gap-1.5">
-                              {/* Edit Modal */}
                               <button
                                 onClick={() => setEditCustomerModal({ ...cust })}
-                                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#1D1D1F] transition-colors"
+                                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#1D1D1F] transition-colors cursor-pointer"
                                 title="Edit Data Pengguna"
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
 
-                              {/* Reset Password */}
                               <button
                                 onClick={() => {
                                   setResetPwdModal(cust);
-                                  setNewPasswordVal('password123');
+                                  setNewPasswordVal('password123456');
                                 }}
-                                className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1173d4] transition-colors"
+                                className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1173d4] transition-colors cursor-pointer"
                                 title="Reset Kata Sandi"
                               >
                                 <KeyRound className="w-4 h-4" />
                               </button>
 
-                              {/* Toggle Block / Unblock */}
                               <button
                                 onClick={() => handleToggleStatus(cust)}
-                                className={`p-2 rounded-xl transition-colors ${
+                                className={`p-2 rounded-xl transition-colors cursor-pointer ${
                                   cust.status === 'active'
                                     ? 'bg-amber-50 hover:bg-amber-100 text-amber-600'
                                     : 'bg-green-50 hover:bg-green-100 text-green-600'
@@ -663,10 +841,9 @@ export default function AdminDashboard() {
                                 <Ban className="w-4 h-4" />
                               </button>
 
-                              {/* Delete Account */}
                               <button
                                 onClick={() => handleDeleteCust(cust)}
-                                className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-[#FF3B30] transition-colors"
+                                className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-[#FF3B30] transition-colors cursor-pointer"
                                 title="Hapus Pengguna"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -683,169 +860,530 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Tab: Kelola Event */}
-        {activeTab === 'kelola' && eventForm && (
+        {/* Tab 4: Kelola Multi-Event */}
+        {activeTab === 'kelola' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Settings className="w-5 h-5 text-[#1173d4]" />
-                Konfigurasi Event &amp; Kuota Tiket
-              </h2>
-              <button
-                onClick={handleSaveEvent}
-                className="btn-primary py-2 px-4 text-xs sm:text-sm flex items-center gap-2 shadow-md"
-              >
-                <Save className="w-4 h-4" />
-                Simpan Perubahan
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Form Info Event */}
-              <div className="bg-white border border-black/5 rounded-2xl p-6 shadow-sm space-y-4">
-                <h3 className="font-bold text-sm text-[#1D1D1F] uppercase tracking-wider">
-                  Informasi Dasar Event
-                </h3>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#86868B] mb-1">
-                    Judul Event
-                  </label>
-                  <input
-                    type="text"
-                    value={eventForm.title}
-                    onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
-                    className="input-field py-2 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#86868B] mb-1">
-                    Sub-judul / Tagline
-                  </label>
-                  <input
-                    type="text"
-                    value={eventForm.subtitle}
-                    onChange={(e) => setEventForm({ ...eventForm, subtitle: e.target.value })}
-                    className="input-field py-2 text-sm"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#86868B] mb-1">Lokasi</label>
-                    <input
-                      type="text"
-                      value={eventForm.location}
-                      onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
-                      className="input-field py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#86868B] mb-1">
-                      Waktu Mulai
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={eventForm.date}
-                      onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
-                      className="input-field py-2 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#86868B] mb-1">
-                    Alamat Lengkap
-                  </label>
-                  <input
-                    type="text"
-                    value={eventForm.address}
-                    onChange={(e) => setEventForm({ ...eventForm, address: e.target.value })}
-                    className="input-field py-2 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#86868B] mb-1">
-                    Deskripsi Event
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={eventForm.description}
-                    onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
-                    className="input-field py-2 text-sm resize-none"
-                  />
-                </div>
+            {/* Header & Multi-Event Switcher */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-[#1173d4]" />
+                  Kelola Daftar Event &amp; Paket Tiket
+                </h2>
+                <p className="text-xs text-[#86868B] mt-0.5">
+                  Pilih event untuk mengedit rincian dan kuota tiket, atau tambah event baru.
+                </p>
               </div>
 
-              {/* Form Tier & Kuota */}
-              <div className="bg-white border border-black/5 rounded-2xl p-6 shadow-sm space-y-4">
-                <h3 className="font-bold text-sm text-[#1D1D1F] uppercase tracking-wider">
-                  Kategori Tiket, Harga & Kuota
-                </h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAddEventModal(true)}
+                  className="btn-primary py-2.5 px-4 text-xs sm:text-sm flex items-center gap-2 shadow-md cursor-pointer"
+                >
+                  <CalendarPlus className="w-4 h-4" />
+                  <span>Tambah Event Baru</span>
+                </button>
+              </div>
+            </div>
 
-                <div className="space-y-4">
-                  {tierForms.map((tier, idx) => (
-                    <div
-                      key={tier.id}
-                      className="p-4 rounded-xl bg-[#F5F5F7] border border-black/5 space-y-3"
+            {/* Event Selector Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {allEvents.map((evt) => {
+                const isSelected = evt.id === selectedEventId;
+                const totalQuota = evt.tiers?.reduce((sum, t) => sum + Number(t.quota || 0), 0) || 0;
+                const totalSold = evt.tiers?.reduce((sum, t) => sum + Number(t.sold || 0), 0) || 0;
+
+                return (
+                  <div
+                    key={evt.id}
+                    onClick={() => setSelectedEventId(evt.id)}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-blue-50/70 border-[#1173d4] shadow-md ring-2 ring-[#1173d4]/20'
+                        : 'bg-white border-black/5 hover:border-black/15 hover:shadow-sm'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-[#1173d4]">
+                          {evt.category || 'Konser'}
+                        </span>
+                        <span className="text-[11px] font-mono font-bold text-gray-500">
+                          {evt.id}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-sm text-[#1D1D1F] line-clamp-1">{evt.title}</h4>
+                      <p className="text-xs text-[#86868B] mt-0.5 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> {evt.location}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 pt-2.5 border-t border-black/5 flex items-center justify-between text-xs">
+                      <span className="text-[#86868B]">
+                        Terjual: <strong className="text-[#1D1D1F]">{totalSold}/{totalQuota}</strong>
+                      </span>
+                      <span className="text-[#1173d4] font-semibold">
+                        {evt.tiers?.length || 0} Tier Tiket
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Event Edit Section */}
+            {eventForm && (
+              <div className="space-y-6 pt-2">
+                <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-black/5 shadow-sm">
+                  <div>
+                    <span className="text-xs font-semibold text-[#86868B] uppercase">
+                      Sedang Mengedit
+                    </span>
+                    <h3 className="text-lg font-bold text-[#1D1D1F]">{eventForm.title}</h3>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {allEvents.length > 1 && (
+                      <button
+                        onClick={() => handleDeleteEvent(currentSelectedEvent)}
+                        className="py-2 px-3 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" /> Hapus Event
+                      </button>
+                    )}
+                    <button
+                      onClick={handleSaveEvent}
+                      className="btn-primary py-2 px-4 text-xs sm:text-sm flex items-center gap-2 shadow-md cursor-pointer"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-[#1D1D1F]">{tier.name}</span>
-                        <span className="text-xs text-[#86868B]">Terjual: {tier.sold} tiket</span>
-                      </div>
+                      <Save className="w-4 h-4" /> Simpan Perubahan
+                    </button>
+                  </div>
+                </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-[#86868B] mb-1">
-                            Harga (Rp)
-                          </label>
-                          <input
-                            type="number"
-                            value={tier.price}
-                            onChange={(e) => handleTierChange(idx, 'price', e.target.value)}
-                            className="input-field py-1.5 px-3 text-sm bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-[#86868B] mb-1">
-                            Total Kuota
-                          </label>
-                          <input
-                            type="number"
-                            value={tier.quota}
-                            onChange={(e) => handleTierChange(idx, 'quota', e.target.value)}
-                            className="input-field py-1.5 px-3 text-sm bg-white"
-                          />
-                        </div>
-                      </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Form Info Event */}
+                  <div className="bg-white border border-black/5 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 className="font-bold text-sm text-[#1D1D1F] uppercase tracking-wider">
+                      Informasi Dasar Event
+                    </h3>
 
+                    <div>
+                      <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                        Judul Event <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={eventForm.title}
+                        onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
+                        className="input-field py-2 text-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-[11px] font-semibold text-[#86868B] mb-1">
-                          Deskripsi Tier
+                        <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                          Sub-judul / Tagline
                         </label>
                         <input
                           type="text"
-                          value={tier.description}
-                          onChange={(e) => handleTierChange(idx, 'description', e.target.value)}
-                          className="input-field py-1.5 px-3 text-sm bg-white"
+                          value={eventForm.subtitle}
+                          onChange={(e) => setEventForm({ ...eventForm, subtitle: e.target.value })}
+                          className="input-field py-2 text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                          Kategori
+                        </label>
+                        <select
+                          value={eventForm.category}
+                          onChange={(e) => setEventForm({ ...eventForm, category: e.target.value })}
+                          className="input-field py-2 text-sm bg-white"
+                        >
+                          {DEFAULT_CATEGORIES.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-[#86868B] mb-1">Lokasi</label>
+                        <input
+                          type="text"
+                          value={eventForm.location}
+                          onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+                          className="input-field py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                          Penyelenggara (Organizer)
+                        </label>
+                        <input
+                          type="text"
+                          value={eventForm.organizer}
+                          onChange={(e) => setEventForm({ ...eventForm, organizer: e.target.value })}
+                          className="input-field py-2 text-sm"
                         />
                       </div>
                     </div>
-                  ))}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                          Waktu Mulai
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={eventForm.date}
+                          onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
+                          className="input-field py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                          Waktu Selesai
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={eventForm.endDate}
+                          onChange={(e) => setEventForm({ ...eventForm, endDate: e.target.value })}
+                          className="input-field py-2 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                        Alamat Lengkap
+                      </label>
+                      <input
+                        type="text"
+                        value={eventForm.address}
+                        onChange={(e) => setEventForm({ ...eventForm, address: e.target.value })}
+                        className="input-field py-2 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                        Deskripsi Event
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={eventForm.description}
+                        onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
+                        className="input-field py-2 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Form Kuota & Kategori Tiket */}
+                  <div className="bg-white border border-black/5 rounded-2xl p-6 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-sm text-[#1D1D1F] uppercase tracking-wider">
+                        Kategori Tiket, Harga &amp; Kuota
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={handleAddTierRow}
+                        className="text-xs text-[#1173d4] font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Tambah Paket Tiket
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {tierForms.map((tier, index) => (
+                        <div
+                          key={tier.id || index}
+                          className="p-4 bg-[#F5F5F7] rounded-xl border border-black/5 space-y-3 relative group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="w-3 h-3 rounded-full shrink-0"
+                                style={{ backgroundColor: tier.color || '#3b82f6' }}
+                              />
+                              <input
+                                type="text"
+                                value={tier.name}
+                                onChange={(e) => handleTierChange(index, 'name', e.target.value)}
+                                className="font-bold text-sm text-[#1D1D1F] bg-transparent border-b border-transparent hover:border-gray-400 focus:border-[#1173d4] focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-[#86868B]">
+                                Terjual: <strong className="text-[#1D1D1F]">{tier.sold || 0}</strong> tiket
+                              </span>
+                              {tierForms.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTierRow(index)}
+                                  className="text-red-500 hover:text-red-700 p-1 transition-colors cursor-pointer"
+                                  title="Hapus Tier"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-semibold text-[#86868B] mb-1">
+                                Harga (Rp)
+                              </label>
+                              <input
+                                type="number"
+                                value={tier.price}
+                                onChange={(e) => handleTierChange(index, 'price', e.target.value)}
+                                className="w-full bg-white border border-black/5 rounded-lg p-2 text-xs font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-semibold text-[#86868B] mb-1">
+                                Total Kuota
+                              </label>
+                              <input
+                                type="number"
+                                value={tier.quota}
+                                onChange={(e) => handleTierChange(index, 'quota', e.target.value)}
+                                className="w-full bg-white border border-black/5 rounded-lg p-2 text-xs font-semibold"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-semibold text-[#86868B] mb-1">
+                              Deskripsi Tier
+                            </label>
+                            <input
+                              type="text"
+                              value={tier.description}
+                              onChange={(e) => handleTierChange(index, 'description', e.target.value)}
+                              className="w-full bg-white border border-black/5 rounded-lg p-2 text-xs"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Modal Tambah Pelanggan */}
+      {/* Modal Tambah Event Baru */}
+      {addEventModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in overflow-y-auto">
+          <div
+            className="bg-white max-w-2xl w-full rounded-3xl p-6 sm:p-8 shadow-2xl border border-black/5 my-auto animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-black/5 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-[#1D1D1F] flex items-center gap-2">
+                  <CalendarPlus className="w-5 h-5 text-[#1173d4]" />
+                  Tambah Event Baru
+                </h3>
+                <p className="text-xs text-[#86868B]">
+                  Event baru akan otomatis muncul di Beranda dan bisa dibeli tiketnya
+                </p>
+              </div>
+              <button
+                onClick={() => setAddEventModal(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddEventSubmit} className="space-y-4 text-xs sm:text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#1D1D1F] uppercase mb-1">
+                    Judul Event <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Bandung Rock Fest 2026"
+                    value={newEventTitle}
+                    onChange={(e) => setNewEventTitle(e.target.value)}
+                    className="input-field py-2 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#1D1D1F] uppercase mb-1">
+                    Kategori Event
+                  </label>
+                  <select
+                    value={newEventCategory}
+                    onChange={(e) => setNewEventCategory(e.target.value)}
+                    className="input-field py-2 text-xs sm:text-sm bg-white"
+                  >
+                    {DEFAULT_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#1D1D1F] uppercase mb-1">
+                    Tagline / Sub-judul
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: The Ultimate Stage"
+                    value={newEventSubtitle}
+                    onChange={(e) => setNewEventSubtitle(e.target.value)}
+                    className="input-field py-2 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#1D1D1F] uppercase mb-1">
+                    Penyelenggara (Organizer)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Rock Nation Promo"
+                    value={newEventOrganizer}
+                    onChange={(e) => setNewEventOrganizer(e.target.value)}
+                    className="input-field py-2 text-xs sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#1D1D1F] uppercase mb-1">
+                    Lokasi / Venue <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Lapangan Gasibu Bandung"
+                    value={newEventLocation}
+                    onChange={(e) => setNewEventLocation(e.target.value)}
+                    className="input-field py-2 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#1D1D1F] uppercase mb-1">
+                    Waktu Mulai <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={newEventDate}
+                    onChange={(e) => setNewEventDate(e.target.value)}
+                    className="input-field py-2 text-xs sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-[#1D1D1F] uppercase mb-1">
+                  Deskripsi Singkat
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Ceritakan tentang keseruan acara ini..."
+                  value={newEventDescription}
+                  onChange={(e) => setNewEventDescription(e.target.value)}
+                  className="input-field py-2 text-xs sm:text-sm"
+                />
+              </div>
+
+              {/* Tiers Config */}
+              <div className="pt-2">
+                <label className="block text-[11px] font-semibold text-[#1D1D1F] uppercase mb-2">
+                  Paket Tiket Awal (Harga &amp; Kuota)
+                </label>
+                <div className="space-y-2">
+                  {newEventTiers.map((t, idx) => (
+                    <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2.5 rounded-xl border border-black/5">
+                      <input
+                        type="text"
+                        placeholder="Nama Tier"
+                        value={t.name}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewEventTiers((prev) =>
+                            prev.map((item, i) => (i === idx ? { ...item, name: val } : item))
+                          );
+                        }}
+                        className="w-1/3 bg-white p-2 rounded-lg text-xs font-semibold border border-black/5"
+                        required
+                      />
+                      <input
+                        type="number"
+                        placeholder="Harga (Rp)"
+                        value={t.price}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setNewEventTiers((prev) =>
+                            prev.map((item, i) => (i === idx ? { ...item, price: val } : item))
+                          );
+                        }}
+                        className="w-1/3 bg-white p-2 rounded-lg text-xs font-semibold border border-black/5"
+                        required
+                      />
+                      <input
+                        type="number"
+                        placeholder="Kuota"
+                        value={t.quota}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setNewEventTiers((prev) =>
+                            prev.map((item, i) => (i === idx ? { ...item, quota: val } : item))
+                          );
+                        }}
+                        className="w-1/3 bg-white p-2 rounded-lg text-xs font-semibold border border-black/5"
+                        required
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-3 border-t border-black/5">
+                <button
+                  type="button"
+                  onClick={() => setAddEventModal(false)}
+                  className="btn-outline flex-1 text-xs py-2.5 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button type="submit" className="btn-primary flex-1 text-xs py-2.5 font-bold cursor-pointer">
+                  Simpan &amp; Publikasikan Event
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tambah Pengguna */}
       {addCustomerModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-2xl border border-black/5">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-[#1D1D1F] flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-[#1173d4]" />
                 Tambah Pengguna Baru
@@ -858,38 +1396,38 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <form onSubmit={handleAddCustomerSubmit} className="space-y-4">
+            <form onSubmit={handleAddCustomerSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-[#1D1D1F] uppercase mb-1">
-                  Nama Lengkap *
+                <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                  Nama Lengkap
                 </label>
                 <input
                   type="text"
                   required
                   value={newCustName}
                   onChange={(e) => setNewCustName(e.target.value)}
-                  placeholder="Contoh: Rina Anggraini"
+                  placeholder="Nama Lengkap"
                   className="input-field py-2 text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1D1D1F] uppercase mb-1">
-                  Alamat Email *
+                <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                  Alamat Email
                 </label>
                 <input
                   type="email"
                   required
                   value={newCustEmail}
                   onChange={(e) => setNewCustEmail(e.target.value)}
-                  placeholder="rina@gmail.com"
+                  placeholder="nama@email.com"
                   className="input-field py-2 text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1D1D1F] uppercase mb-1">
-                  Nomor WhatsApp *
+                <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                  Nomor WhatsApp
                 </label>
                 <input
                   type="tel"
@@ -902,19 +1440,19 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1D1D1F] uppercase mb-1">
-                  Kata Sandi Awal
+                <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                  Kata Sandi Awal (Min. 12 Karakter)
                 </label>
                 <input
                   type="text"
                   value={newCustPassword}
                   onChange={(e) => setNewCustPassword(e.target.value)}
-                  placeholder="Default: password123"
+                  placeholder="password123456"
                   className="input-field py-2 text-sm"
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setAddCustomerModal(false)}
@@ -931,11 +1469,11 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Modal Edit Pelanggan */}
+      {/* Modal Edit Pengguna */}
       {editCustomerModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-2xl border border-black/5">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-[#1D1D1F] flex items-center gap-2">
                 <Edit3 className="w-5 h-5 text-[#1173d4]" />
                 Edit Data Pengguna
@@ -948,23 +1486,9 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <form onSubmit={handleEditCustomerSubmit} className="space-y-4">
+            <form onSubmit={handleEditCustomerSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-[#86868B] uppercase mb-1">
-                  Email (Tidak dapat diubah)
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={editCustomerModal.email}
-                  className="input-field py-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#1D1D1F] uppercase mb-1">
-                  Nama Lengkap *
-                </label>
+                <label className="block text-xs font-semibold text-[#86868B] mb-1">Nama</label>
                 <input
                   type="text"
                   required
@@ -977,12 +1501,21 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1D1D1F] uppercase mb-1">
-                  Nomor WhatsApp *
+                <label className="block text-xs font-semibold text-[#86868B] mb-1">
+                  Email (Tidak bisa diubah)
                 </label>
                 <input
+                  type="email"
+                  disabled
+                  value={editCustomerModal.email}
+                  className="input-field py-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#86868B] mb-1">WhatsApp</label>
+                <input
                   type="tel"
-                  required
                   value={editCustomerModal.whatsapp || ''}
                   onChange={(e) =>
                     setEditCustomerModal({ ...editCustomerModal, whatsapp: e.target.value })
@@ -992,7 +1525,7 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1D1D1F] uppercase mb-1">
+                <label className="block text-xs font-semibold text-[#86868B] mb-1">
                   Status Akun
                 </label>
                 <select
@@ -1052,7 +1585,7 @@ export default function AdminDashboard() {
                   required
                   value={newPasswordVal}
                   onChange={(e) => setNewPasswordVal(e.target.value)}
-                  placeholder="Kata sandi baru"
+                  placeholder="Kata sandi baru (min 12 char)"
                   className="input-field py-2 text-sm"
                   autoFocus
                 />

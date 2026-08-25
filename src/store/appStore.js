@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import {
+  INITIAL_EVENTS,
   INITIAL_EVENT,
   INITIAL_ORDERS,
   ORDER_STATUS,
@@ -13,9 +14,10 @@ import {
 export const AppContext = createContext(null);
 export const AppDispatchContext = createContext(null);
 
-export const STORAGE_KEY = 'karcix-state-v1';
+export const STORAGE_KEY = 'karcix-state-v2';
 
 export const initialState = {
+  events: INITIAL_EVENTS,
   event: INITIAL_EVENT,
   orders: INITIAL_ORDERS,
   lastCreatedOrderId: null,
@@ -30,9 +32,17 @@ export function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return initialState;
     const parsed = JSON.parse(raw);
-    if (!parsed?.event || !Array.isArray(parsed?.orders)) return initialState;
-    syncOrderSequence(parsed.orders);
-    return { ...initialState, ...parsed };
+    if (!Array.isArray(parsed?.events) && !parsed?.event) return initialState;
+    if (Array.isArray(parsed?.orders)) {
+      syncOrderSequence(parsed.orders);
+    }
+    const events = parsed.events || (parsed.event ? [parsed.event] : INITIAL_EVENTS);
+    return {
+      ...initialState,
+      ...parsed,
+      events,
+      event: events[0] || INITIAL_EVENT,
+    };
   } catch {
     return initialState;
   }
@@ -42,7 +52,7 @@ export function saveState(state) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
-    // Kuota storage penuh (bukti transfer base64 bisa besar) — abaikan, state tetap di memori.
+    // Kuota storage penuh — abaikan, state tetap di memori.
   }
 }
 
@@ -54,14 +64,18 @@ export function clearState() {
   }
 }
 
-/** Kembalikan kuota tier saat pesanan batal/kedaluwarsa. */
-function restoreTierStock(event, order) {
-  return {
-    ...event,
-    tiers: event.tiers.map((t) =>
-      t.id === order.tierId ? { ...t, sold: Math.max(0, t.sold - order.qty) } : t
-    ),
-  };
+/** Kembalikan kuota tier saat pesanan batal/kedaluwarsa di seluruh events */
+function restoreTierStock(events, order) {
+  return (events || INITIAL_EVENTS).map((evt) => {
+    const hasTier = evt.tiers?.some((t) => t.id === order.tierId);
+    if (!hasTier) return evt;
+    return {
+      ...evt,
+      tiers: evt.tiers.map((t) =>
+        t.id === order.tierId ? { ...t, sold: Math.max(0, t.sold - order.qty) } : t
+      ),
+    };
+  });
 }
 
 /** Ubah satu pesanan pending menjadi status akhir sambil mengembalikan kuotanya. */
@@ -70,12 +84,15 @@ function releaseOrder(state, orderId, nextStatus) {
   // Hanya pesanan pending yang boleh dilepas, supaya kuota tidak dikembalikan dua kali.
   if (!order || order.status !== ORDER_STATUS.PENDING) return state;
 
+  const updatedEvents = restoreTierStock(state.events, order);
+
   return {
     ...state,
     orders: state.orders.map((o) =>
       o.id === orderId ? { ...o, status: nextStatus } : o
     ),
-    event: restoreTierStock(state.event, order),
+    events: updatedEvents,
+    event: updatedEvents.find((e) => e.id === state.event?.id) || updatedEvents[0],
   };
 }
 
@@ -83,10 +100,17 @@ export function appReducer(state, action) {
   switch (action.type) {
     case 'CREATE_ORDER': {
       const { id, buyerName, email, whatsapp, tierId, qty, paymentMethod } = action.payload;
-      const tier = state.event.tiers.find((t) => t.id === tierId);
+      
+      // Cari event yang memiliki tier ini
+      const targetEvent =
+        state.events?.find((e) => e.tiers?.some((t) => t.id === tierId)) ||
+        state.event;
+      
+      if (!targetEvent) return state;
+      const tier = targetEvent.tiers?.find((t) => t.id === tierId);
       if (!tier) return state;
 
-      // Jaga-jaga kalau UI dilewati (misal akses /checkout/:tierId langsung dari URL).
+      // Jaga-jaga kalau UI dilewati
       const remaining = tier.quota - tier.sold;
       const safeQty = Math.min(qty, remaining, MAX_QTY_PER_ORDER);
       if (safeQty < 1) return state;
@@ -95,6 +119,8 @@ export function appReducer(state, action) {
       const orderId = id || generateOrderId();
       const newOrder = {
         id: orderId,
+        eventId: targetEvent.id,
+        eventTitle: targetEvent.title,
         buyerName,
         email,
         whatsapp,
@@ -116,14 +142,20 @@ export function appReducer(state, action) {
         localStorage.setItem('karcix-last-order-id', orderId);
       } catch {}
 
-      return {
-        ...state,
-        event: {
-          ...state.event,
-          tiers: state.event.tiers.map((t) =>
+      const updatedEvents = (state.events || INITIAL_EVENTS).map((evt) => {
+        if (evt.id !== targetEvent.id) return evt;
+        return {
+          ...evt,
+          tiers: evt.tiers.map((t) =>
             t.id === tierId ? { ...t, sold: t.sold + safeQty } : t
           ),
-        },
+        };
+      });
+
+      return {
+        ...state,
+        events: updatedEvents,
+        event: updatedEvents.find((e) => e.id === state.event?.id) || updatedEvents[0],
         orders: [...state.orders.filter((o) => o.id !== orderId), newOrder],
         lastCreatedOrderId: orderId,
       };
@@ -170,19 +202,50 @@ export function appReducer(state, action) {
       };
     }
 
-    case 'UPDATE_EVENT':
-      return { ...state, event: { ...state.event, ...action.payload } };
+    case 'ADD_EVENT': {
+      const newEvent = action.payload;
+      const updatedEvents = [newEvent, ...(state.events || [])];
+      return {
+        ...state,
+        events: updatedEvents,
+        event: updatedEvents[0],
+      };
+    }
+
+    case 'UPDATE_EVENT': {
+      const targetId = action.payload.id || action.payload.eventId || state.event?.id;
+      const updatedEvents = (state.events || INITIAL_EVENTS).map((evt) =>
+        evt.id === targetId ? { ...evt, ...action.payload } : evt
+      );
+      return {
+        ...state,
+        events: updatedEvents,
+        event: updatedEvents.find((e) => e.id === targetId) || updatedEvents[0],
+      };
+    }
+
+    case 'DELETE_EVENT': {
+      const targetId = action.payload.eventId || action.payload.id;
+      const updatedEvents = (state.events || []).filter((e) => e.id !== targetId);
+      return {
+        ...state,
+        events: updatedEvents,
+        event: updatedEvents[0] || null,
+      };
+    }
 
     case 'UPDATE_TIER': {
       const { tierId, updates } = action.payload;
+      const updatedEvents = (state.events || INITIAL_EVENTS).map((evt) => ({
+        ...evt,
+        tiers: (evt.tiers || []).map((t) =>
+          t.id === tierId ? { ...t, ...updates } : t
+        ),
+      }));
       return {
         ...state,
-        event: {
-          ...state.event,
-          tiers: state.event.tiers.map((t) =>
-            t.id === tierId ? { ...t, ...updates } : t
-          ),
-        },
+        events: updatedEvents,
+        event: updatedEvents.find((e) => e.id === state.event?.id) || updatedEvents[0],
       };
     }
 
@@ -192,6 +255,9 @@ export function appReducer(state, action) {
       // Pertahankan pesanan lokal yang sedang dalam proses kirim ke Supabase
       const localInFlight = (state.orders || []).filter((o) => !serverIds.has(o.id));
       const mergedOrders = [...serverOrders, ...localInFlight];
+
+      const events = action.payload.events || (action.payload.event ? [action.payload.event] : state.events);
+      const event = action.payload.event || events[0] || state.event;
 
       let lastId = state.lastCreatedOrderId || action.payload.lastCreatedOrderId;
       if (!lastId) {
@@ -203,6 +269,8 @@ export function appReducer(state, action) {
       return {
         ...state,
         ...action.payload,
+        events,
+        event,
         orders: mergedOrders,
         lastCreatedOrderId: lastId,
       };
